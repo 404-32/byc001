@@ -1,0 +1,101 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "404-32/moon-pe-inspect"
+
+// Values
+pub fn architecture_name(Int) -> String
+
+pub fn subsystem_name(Int) -> String
+
+// Errors
+pub(all) suberror PeError {
+  PeError(Int, String)
+}
+
+// Types and methods
+pub(all) struct DataDirectory {
+  index : Int
+  name : String
+  virtual_address : UInt64
+  size : Int
+}
+
+pub(all) struct Diagnostic {
+  severity : Severity
+  code : String
+  message : String
+}
+
+pub(all) struct ExportSymbol {
+  name : String
+  ordinal : Int
+  rva : UInt64
+  forwarder : String?
+}
+
+pub(all) struct ImportLibrary {
+  name : String
+  symbols : Array[ImportSymbol]
+}
+
+pub(all) struct ImportSymbol {
+  name : String?
+  ordinal : Int?
+  hint : Int?
+}
+
+pub(all) enum PEFormat {
+  PE32
+  PE32Plus
+}
+
+pub(all) struct PEImage {
+  data : Bytes
+  pe_offset : Int
+  format : PEFormat
+  machine : Int
+  number_of_sections : Int
+  timestamp : UInt64
+  symbol_table_pointer : UInt64
+  number_of_symbols : UInt64
+  size_of_optional_header : Int
+  characteristics : Int
+  entry_point : UInt64
+  image_base : UInt64
+  section_alignment : Int
+  file_alignment : Int
+  size_of_image : Int
+  size_of_headers : Int
+  checksum : UInt64
+  subsystem : Int
+  dll_characteristics : Int
+  sections : Array[Section]
+  directories : Array[DataDirectory]
+}
+pub fn PEImage::directory(Self, Int) -> DataDirectory?
+pub fn PEImage::exports(Self) -> Array[ExportSymbol] raise PeError
+pub fn PEImage::imports(Self) -> Array[ImportLibrary] raise PeError
+pub fn PEImage::is_64_bit(Self) -> Bool
+pub fn PEImage::parse(Bytes) -> Self raise PeError
+pub fn PEImage::read_c_string(Self, UInt64, Int) -> String raise PeError
+pub fn PEImage::rva_to_offset(Self, UInt64) -> Int raise PeError
+pub fn PEImage::section_by_name(Self, String) -> Section?
+pub fn PEImage::security_diagnostics(Self) -> Array[Diagnostic]
+
+pub(all) struct Section {
+  name : String
+  virtual_size : Int
+  virtual_address : UInt64
+  raw_size : Int
+  raw_offset : Int
+  characteristics : UInt64
+}
+
+pub(all) enum Severity {
+  Info
+  Warning
+  Critical
+}
+
+// Type aliases
+
+// Traits
