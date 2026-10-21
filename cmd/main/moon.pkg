@@ -1,0 +1,10 @@
+import {
+  "404-32/moon-pe-inspect" @pe,
+  "moonbitlang/core/env",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "+wasm"
