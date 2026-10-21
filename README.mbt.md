@@ -35,6 +35,17 @@ byte access. This project owns the domain logic:
 
 ## Quick start
 
+Install from mooncakes.io:
+
+```bash
+moon add 404-32/moon-pe-inspect@0.1.0
+```
+
+Package page:
+https://mooncakes.io/docs/404-32/moon-pe-inspect/0.1.0
+
+Build and test from source:
+
 ```bash
 git clone https://github.com/404-32/byc001.git
 cd byc001
