@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        uses: hustcer/setup-moonbit@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update registry index
+        run: moon update
+
+      - name: Check formatting
+        run: moon fmt --check
+
+      - name: Static checks
+        run: moon check --target wasm --deny-warn
+
+      - name: Tests
+        run: moon test --target wasm --deny-warn
+
+      - name: Reproduce fixtures
+        run: |
+          python3 scripts/generate_fixtures.py
+          git diff --exit-code -- examples
+
+      - name: CLI smoke tests
+        run: |
+          moon run cmd/main -- inspect examples/minimal-pe32.exe
+          moon run cmd/main -- imports examples/minimal-pe32.exe
+          moon run cmd/main -- exports examples/minimal-pe32.exe
+          moon run cmd/main -- security examples/minimal-pe32plus.exe --json
