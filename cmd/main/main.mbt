@@ -1,5 +1,5 @@
 ///|
-const VERSION : String = "0.1.0"
+const VERSION : String = "0.2.0"
 
 ///|
 const USAGE : String =
@@ -11,6 +11,15 @@ const USAGE : String =
   #|  moon-pe-inspect imports  <file> [--json]
   #|  moon-pe-inspect exports  <file> [--json]
   #|  moon-pe-inspect security <file> [--json]
+  #|  moon-pe-inspect directories <file> [--json]
+  #|  moon-pe-inspect resources <file> [--json]
+  #|  moon-pe-inspect relocations <file> [--json]
+  #|  moon-pe-inspect delay-imports <file> [--json]
+  #|  moon-pe-inspect tls <file> [--json]
+  #|  moon-pe-inspect debug <file> [--json]
+  #|  moon-pe-inspect load-config <file> [--json]
+  #|  moon-pe-inspect exceptions <file> [--json]
+  #|  moon-pe-inspect diff <left> <right> [--json]
 
 ///|
 async fn main {
@@ -43,6 +52,14 @@ async fn main {
       positionals.push(args[arg_index])
     }
   }
+  if command == "diff" {
+    if positionals.length() != 2 {
+      println(USAGE)
+      abort("diff requires two PE files")
+    }
+    diff_files(positionals[0], positionals[1], json_mode)
+    return
+  }
   if positionals.length() != 1 {
     println(USAGE)
     abort("expected exactly one PE file")
@@ -54,6 +71,14 @@ async fn main {
     "imports" => imports(image, json_mode)
     "exports" => exports(image, json_mode)
     "security" => security(image, json_mode)
+    "directories" => directories(image, json_mode)
+    "resources" => resources(image, json_mode)
+    "relocations" => relocations(image, json_mode)
+    "delay-imports" => delay_imports(image, json_mode)
+    "tls" => tls(image, json_mode)
+    "debug" => debug(image, json_mode)
+    "load-config" => load_config(image, json_mode)
+    "exceptions" => exceptions(image, json_mode)
     _ => {
       println("unknown command: \{command}")
       println(USAGE)
@@ -105,6 +130,13 @@ fn inspect(image : @pe.PEImage, json_mode : Bool) -> Unit {
   println("entry point: \{hex(image.entry_point)}")
   println("image size: \{image.size_of_image}")
   println("sections: \{image.number_of_sections}")
+  let directories = []
+  for directory in image.directories {
+    if directory.virtual_address != 0UL || directory.size != 0 {
+      directories.push(directory.name)
+    }
+  }
+  println("directories: \{directories.join(",")}")
   let diagnostics = image.security_diagnostics()
   println("security diagnostics: \{diagnostics.length()}")
   for diagnostic in diagnostics {
@@ -189,6 +221,202 @@ fn security(image : @pe.PEImage, json_mode : Bool) -> Unit {
 }
 
 ///|
+fn directories(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  if json_mode {
+    println(directories_json(image))
+    return
+  }
+  for directory in image.directories {
+    if directory.virtual_address != 0UL || directory.size != 0 {
+      println(
+        "\{directory.index} \{directory.name}: rva=\{hex(directory.virtual_address)} size=\{directory.size}",
+      )
+    }
+  }
+}
+
+///|
+fn resources(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let entries = image.resources() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid resource directory: offset=\{offset}: \{message}")
+      abort("resource parse failed")
+    }
+  }
+  if json_mode {
+    println(resources_json(entries))
+    return
+  }
+  for entry in entries {
+    println(
+      "\{entry.path}: rva=\{hex(entry.data_rva)} size=\{entry.size} code-page=\{entry.code_page}",
+    )
+  }
+}
+
+///|
+fn relocations(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let blocks = image.base_relocations() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid relocation directory: offset=\{offset}: \{message}")
+      abort("relocation parse failed")
+    }
+  }
+  if json_mode {
+    println(relocations_json(blocks))
+    return
+  }
+  for block in blocks {
+    println("page=\{hex(block.page_rva)} entries=\{block.entries.length()}")
+    for entry in block.entries {
+      println(
+        "  \{@pe.relocation_type_name(entry.relocation_type)} rva=\{hex(entry.target_rva)}",
+      )
+    }
+  }
+}
+
+///|
+fn delay_imports(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let libraries = image.delay_imports() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid delay-import directory: offset=\{offset}: \{message}")
+      abort("delay-import parse failed")
+    }
+  }
+  if json_mode {
+    println(delay_imports_json(libraries))
+    return
+  }
+  for library in libraries {
+    println(library.name)
+    for symbol in library.symbols {
+      match symbol.name {
+        Some(name) => println("  \{name}")
+        None => println("  #\{symbol.ordinal.unwrap()}")
+      }
+    }
+  }
+}
+
+///|
+fn tls(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let info = image.tls() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid TLS directory: offset=\{offset}: \{message}")
+      abort("TLS parse failed")
+    }
+  }
+  if json_mode {
+    println(tls_json(info))
+    return
+  }
+  match info {
+    Some(tls) => {
+      println("raw-data: \{hex(tls.raw_data_start)}..\{hex(tls.raw_data_end)}")
+      println("index-address: \{hex(tls.index_address)}")
+      println("callbacks-address: \{hex(tls.callbacks_address)}")
+      println("zero-fill: \{tls.size_of_zero_fill}")
+      for callback in tls.callbacks {
+        println("callback: \{hex(callback)}")
+      }
+    }
+    None => println("no TLS directory")
+  }
+}
+
+///|
+fn debug(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let entries = image.debug_entries() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid debug directory: offset=\{offset}: \{message}")
+      abort("debug parse failed")
+    }
+  }
+  if json_mode {
+    println(debug_json(entries))
+    return
+  }
+  for entry in entries {
+    println(
+      "\{entry.type_name}: size=\{entry.size_of_data} rva=\{hex(entry.address_of_raw_data)}",
+    )
+    match entry.pdb_path {
+      Some(path) => println("  pdb=\{path} age=\{entry.pdb_age.unwrap()}")
+      None => ()
+    }
+  }
+}
+
+///|
+fn load_config(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let config = image.load_config() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid load-config directory: offset=\{offset}: \{message}")
+      abort("load-config parse failed")
+    }
+  }
+  if json_mode {
+    println(load_config_json(config))
+    return
+  }
+  match config {
+    Some(config) => {
+      println("structure-size: \{config.structure_size}")
+      println(
+        "guard-flags: \{hex(config.guard_flags.unwrap_or(0).to_uint64())}",
+      )
+      println(
+        "guard-function-count: \{config.guard_cf_function_count.unwrap_or(0)}",
+      )
+      println("security-cookie: \{hex(config.security_cookie.unwrap_or(0UL))}")
+    }
+    None => println("no load-config directory")
+  }
+}
+
+///|
+fn exceptions(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let entries = image.exception_entries() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid exception directory: offset=\{offset}: \{message}")
+      abort("exception parse failed")
+    }
+  }
+  if json_mode {
+    println(exceptions_json(entries))
+    return
+  }
+  for entry in entries {
+    println(
+      "\{hex(entry.begin_rva)}..\{hex(entry.end_rva)} unwind=\{hex(entry.unwind_info_rva)}",
+    )
+  }
+}
+
+///|
+async fn diff_files(
+  left_path : String,
+  right_path : String,
+  json_mode : Bool,
+) -> Unit {
+  let left = load_image(left_path)
+  let right = load_image(right_path)
+  let changes = left.diff(right)
+  if json_mode {
+    println(diff_json(changes))
+    return
+  }
+  if changes.is_empty() {
+    println("no differences")
+    return
+  }
+  for change in changes {
+    println("\{change.field}: \{change.before} -> \{change.after}")
+  }
+}
+
+///|
 fn inspect_json(image : @pe.PEImage) -> String {
   let builder = StringBuilder()
   builder.write_string("{\"format\":")
@@ -205,6 +433,8 @@ fn inspect_json(image : @pe.PEImage) -> String {
   builder.write_string(image.size_of_image.to_string())
   builder.write_string(",\"sections\":")
   builder.write_string(image.number_of_sections.to_string())
+  builder.write_string(",\"directories\":")
+  builder.write_string(directories_json(image))
   builder.write_string(",\"diagnostics\":")
   write_diagnostics(builder, image.security_diagnostics())
   builder.write_string("}")
@@ -302,6 +532,268 @@ fn exports_json(symbols : Array[@pe.ExportSymbol]) -> String {
       Some(target) => write_json_string(builder, target)
       None => builder.write_string("null")
     }
+    builder.write_char('}')
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn directories_json(image : @pe.PEImage) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for directory in image.directories {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"index\":")
+    builder.write_string(directory.index.to_string())
+    builder.write_string(",\"name\":")
+    write_json_string(builder, directory.name)
+    builder.write_string(",\"rva\":")
+    write_json_string(builder, hex(directory.virtual_address))
+    builder.write_string(",\"size\":")
+    builder.write_string(directory.size.to_string())
+    builder.write_char('}')
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn resources_json(entries : Array[@pe.ResourceEntry]) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for entry in entries {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"path\":")
+    write_json_string(builder, entry.path)
+    builder.write_string(",\"dataRva\":")
+    write_json_string(builder, hex(entry.data_rva))
+    builder.write_string(",\"size\":")
+    builder.write_string(entry.size.to_string())
+    builder.write_string(",\"codePage\":")
+    builder.write_string(entry.code_page.to_string())
+    builder.write_char('}')
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn relocations_json(blocks : Array[@pe.RelocationBlock]) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for block in blocks {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"pageRva\":")
+    write_json_string(builder, hex(block.page_rva))
+    builder.write_string(",\"entries\":[")
+    let mut first_entry = true
+    for entry in block.entries {
+      if !first_entry {
+        builder.write_char(',')
+      }
+      first_entry = false
+      builder.write_string("{\"type\":")
+      write_json_string(
+        builder,
+        @pe.relocation_type_name(entry.relocation_type),
+      )
+      builder.write_string(",\"targetRva\":")
+      write_json_string(builder, hex(entry.target_rva))
+      builder.write_char('}')
+    }
+    builder.write_string("]}")
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn delay_imports_json(libraries : Array[@pe.DelayImportLibrary]) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for library in libraries {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"library\":")
+    write_json_string(builder, library.name)
+    builder.write_string(",\"attributes\":")
+    builder.write_string(library.attributes.to_string())
+    builder.write_string(",\"symbols\":[")
+    let mut first_symbol = true
+    for symbol in library.symbols {
+      if !first_symbol {
+        builder.write_char(',')
+      }
+      first_symbol = false
+      builder.write_string("{\"name\":")
+      match symbol.name {
+        Some(name) => write_json_string(builder, name)
+        None => builder.write_string("null")
+      }
+      builder.write_string(",\"ordinal\":")
+      match symbol.ordinal {
+        Some(ordinal) => builder.write_string(ordinal.to_string())
+        None => builder.write_string("null")
+      }
+      builder.write_char('}')
+    }
+    builder.write_string("]}")
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn tls_json(info : @pe.TlsInfo?) -> String {
+  match info {
+    None => "null"
+    Some(tls) => {
+      let builder = StringBuilder()
+      builder.write_string("{\"rawDataStart\":")
+      write_json_string(builder, hex(tls.raw_data_start))
+      builder.write_string(",\"rawDataEnd\":")
+      write_json_string(builder, hex(tls.raw_data_end))
+      builder.write_string(",\"indexAddress\":")
+      write_json_string(builder, hex(tls.index_address))
+      builder.write_string(",\"callbacksAddress\":")
+      write_json_string(builder, hex(tls.callbacks_address))
+      builder.write_string(",\"sizeOfZeroFill\":")
+      builder.write_string(tls.size_of_zero_fill.to_string())
+      builder.write_string(",\"callbacks\":[")
+      let mut first = true
+      for callback in tls.callbacks {
+        if !first {
+          builder.write_char(',')
+        }
+        first = false
+        write_json_string(builder, hex(callback))
+      }
+      builder.write_string("]}")
+      builder.to_string()
+    }
+  }
+}
+
+///|
+fn debug_json(entries : Array[@pe.DebugEntry]) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for entry in entries {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"type\":")
+    write_json_string(builder, entry.type_name)
+    builder.write_string(",\"size\":")
+    builder.write_string(entry.size_of_data.to_string())
+    builder.write_string(",\"rva\":")
+    write_json_string(builder, hex(entry.address_of_raw_data))
+    builder.write_string(",\"pdb\":")
+    match entry.pdb_path {
+      Some(path) => write_json_string(builder, path)
+      None => builder.write_string("null")
+    }
+    builder.write_string(",\"age\":")
+    match entry.pdb_age {
+      Some(age) => builder.write_string(age.to_string())
+      None => builder.write_string("null")
+    }
+    builder.write_string(",\"guid\":")
+    match entry.pdb_guid {
+      Some(guid) => write_json_string(builder, guid)
+      None => builder.write_string("null")
+    }
+    builder.write_char('}')
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn load_config_json(config : @pe.LoadConfigInfo?) -> String {
+  match config {
+    None => "null"
+    Some(config) => {
+      let builder = StringBuilder()
+      builder.write_string("{\"structureSize\":")
+      builder.write_string(config.structure_size.to_string())
+      builder.write_string(",\"guardFlags\":")
+      match config.guard_flags {
+        Some(value) => builder.write_string(value.to_string())
+        None => builder.write_string("null")
+      }
+      builder.write_string(",\"guardFunctionCount\":")
+      match config.guard_cf_function_count {
+        Some(value) => builder.write_string(value.to_string())
+        None => builder.write_string("null")
+      }
+      builder.write_string(",\"securityCookie\":")
+      match config.security_cookie {
+        Some(value) => write_json_string(builder, hex(value))
+        None => builder.write_string("null")
+      }
+      builder.write_char('}')
+      builder.to_string()
+    }
+  }
+}
+
+///|
+fn exceptions_json(entries : Array[@pe.ExceptionEntry]) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for entry in entries {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"beginRva\":")
+    write_json_string(builder, hex(entry.begin_rva))
+    builder.write_string(",\"endRva\":")
+    write_json_string(builder, hex(entry.end_rva))
+    builder.write_string(",\"unwindInfoRva\":")
+    write_json_string(builder, hex(entry.unwind_info_rva))
+    builder.write_char('}')
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn diff_json(changes : Array[@pe.DiffItem]) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for change in changes {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"field\":")
+    write_json_string(builder, change.field)
+    builder.write_string(",\"before\":")
+    write_json_string(builder, change.before)
+    builder.write_string(",\"after\":")
+    write_json_string(builder, change.after)
     builder.write_char('}')
   }
   builder.write_char(']')
