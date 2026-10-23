@@ -4,6 +4,8 @@ package "404-32/moon-pe-inspect"
 // Values
 pub fn architecture_name(Int) -> String
 
+pub fn relocation_type_name(Int) -> String
+
 pub fn subsystem_name(Int) -> String
 
 // Errors
@@ -19,10 +21,41 @@ pub(all) struct DataDirectory {
   size : Int
 }
 
+pub(all) struct DebugEntry {
+  debug_type : Int
+  type_name : String
+  timestamp : Int
+  size_of_data : Int
+  address_of_raw_data : UInt64
+  pointer_to_raw_data : Int
+  pdb_path : String?
+  pdb_age : Int?
+  pdb_guid : String?
+}
+
+pub(all) struct DelayImportLibrary {
+  name : String
+  attributes : Int
+  timestamp : Int
+  symbols : Array[ImportSymbol]
+}
+
 pub(all) struct Diagnostic {
   severity : Severity
   code : String
   message : String
+}
+
+pub(all) struct DiffItem {
+  field : String
+  before : String
+  after : String
+}
+
+pub(all) struct ExceptionEntry {
+  begin_rva : UInt64
+  end_rva : UInt64
+  unwind_info_rva : UInt64
 }
 
 pub(all) struct ExportSymbol {
@@ -41,6 +74,21 @@ pub(all) struct ImportSymbol {
   name : String?
   ordinal : Int?
   hint : Int?
+}
+
+pub(all) struct LoadConfigInfo {
+  structure_size : Int
+  timestamp : Int
+  global_flags_clear : Int?
+  global_flags_set : Int?
+  security_cookie : UInt64?
+  se_handler_table : UInt64?
+  se_handler_count : Int?
+  guard_cf_check_pointer : UInt64?
+  guard_cf_dispatch_pointer : UInt64?
+  guard_cf_function_table : UInt64?
+  guard_cf_function_count : Int?
+  guard_flags : Int?
 }
 
 pub(all) enum PEFormat {
@@ -71,15 +119,46 @@ pub(all) struct PEImage {
   sections : Array[Section]
   directories : Array[DataDirectory]
 }
+pub fn PEImage::base_relocations(Self) -> Array[RelocationBlock] raise PeError
+pub fn PEImage::debug_entries(Self) -> Array[DebugEntry] raise PeError
+pub fn PEImage::delay_imports(Self) -> Array[DelayImportLibrary] raise PeError
+pub fn PEImage::diff(Self, Self) -> Array[DiffItem]
 pub fn PEImage::directory(Self, Int) -> DataDirectory?
+pub fn PEImage::exception_entries(Self) -> Array[ExceptionEntry] raise PeError
 pub fn PEImage::exports(Self) -> Array[ExportSymbol] raise PeError
 pub fn PEImage::imports(Self) -> Array[ImportLibrary] raise PeError
 pub fn PEImage::is_64_bit(Self) -> Bool
+pub fn PEImage::load_config(Self) -> LoadConfigInfo? raise PeError
 pub fn PEImage::parse(Bytes) -> Self raise PeError
 pub fn PEImage::read_c_string(Self, UInt64, Int) -> String raise PeError
+pub fn PEImage::resources(Self) -> Array[ResourceEntry] raise PeError
 pub fn PEImage::rva_to_offset(Self, UInt64) -> Int raise PeError
 pub fn PEImage::section_by_name(Self, String) -> Section?
 pub fn PEImage::security_diagnostics(Self) -> Array[Diagnostic]
+pub fn PEImage::tls(Self) -> TlsInfo? raise PeError
+pub fn PEImage::va_to_rva(Self, UInt64) -> UInt64?
+
+pub(all) struct RelocationBlock {
+  page_rva : UInt64
+  entries : Array[RelocationEntry]
+}
+
+pub(all) struct RelocationEntry {
+  relocation_type : Int
+  offset : Int
+  target_rva : UInt64
+}
+
+pub(all) struct ResourceEntry {
+  path : String
+  type_id : Int?
+  name_id : Int?
+  language_id : Int?
+  data_rva : UInt64
+  file_offset : Int?
+  size : Int
+  code_page : Int
+}
 
 pub(all) struct Section {
   name : String
@@ -94,6 +173,16 @@ pub(all) enum Severity {
   Info
   Warning
   Critical
+}
+
+pub(all) struct TlsInfo {
+  raw_data_start : UInt64
+  raw_data_end : UInt64
+  index_address : UInt64
+  callbacks_address : UInt64
+  size_of_zero_fill : Int
+  characteristics : Int
+  callbacks : Array[UInt64]
 }
 
 // Type aliases
