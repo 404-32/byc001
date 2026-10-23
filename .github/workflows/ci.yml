@@ -42,4 +42,11 @@ jobs:
           moon run cmd/main -- inspect examples/minimal-pe32.exe
           moon run cmd/main -- imports examples/minimal-pe32.exe
           moon run cmd/main -- exports examples/minimal-pe32.exe
+          moon run cmd/main -- resources examples/minimal-pe32.exe --json
+          moon run cmd/main -- relocations examples/minimal-pe32.exe --json
+          moon run cmd/main -- delay-imports examples/minimal-pe32.exe --json
+          moon run cmd/main -- debug examples/minimal-pe32.exe --json
+          moon run cmd/main -- load-config examples/minimal-pe32.exe --json
+          moon run cmd/main -- exceptions examples/minimal-pe32.exe --json
+          moon run cmd/main -- diff examples/minimal-pe32.exe examples/minimal-pe32plus.exe --json
           moon run cmd/main -- security examples/minimal-pe32plus.exe --json
