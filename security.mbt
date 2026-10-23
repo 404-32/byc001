@@ -1,6 +1,7 @@
 ///|
 pub fn PEImage::security_diagnostics(self : Self) -> Array[Diagnostic] {
   let diagnostics = []
+  let load_config = self.load_config() catch { PeError(_, _) => None }
   if !has_bit(self.dll_characteristics, 0x0040) {
     diagnostics.push({
       severity: Warning,
@@ -21,6 +22,20 @@ pub fn PEImage::security_diagnostics(self : Self) -> Array[Diagnostic] {
       code: "pe.no-cfg",
       message: "GUARD_CF is not set; Control Flow Guard metadata is absent",
     })
+  } else {
+    let guard_ready = match load_config {
+      Some(config) =>
+        config.guard_cf_function_count.unwrap_or(0) > 0 &&
+        config.guard_cf_function_table.unwrap_or(0UL) != 0UL
+      None => false
+    }
+    if !guard_ready {
+      diagnostics.push({
+        severity: Warning,
+        code: "pe.cfg-metadata-missing",
+        message: "GUARD_CF is set but load-config has no guard function table",
+      })
+    }
   }
   if self.is_64_bit() && !has_bit(self.dll_characteristics, 0x0020) {
     diagnostics.push({
@@ -61,6 +76,43 @@ pub fn PEImage::security_diagnostics(self : Self) -> Array[Diagnostic] {
         message: "AddressOfEntryPoint is not inside an executable section",
       })
     }
+  }
+  if has_bit(self.dll_characteristics, 0x0040) {
+    let has_relocations = match self.directory(5) {
+      Some(directory) => directory.virtual_address != 0UL && directory.size > 0
+      None => false
+    }
+    if !has_relocations {
+      diagnostics.push({
+        severity: Warning,
+        code: "pe.aslr-without-relocations",
+        message: "DYNAMIC_BASE is set but no base-relocation directory is present",
+      })
+    }
+  }
+  if !self.is_64_bit() && !has_bit(self.dll_characteristics, 0x0400) {
+    let safe_seh = match load_config {
+      Some(config) =>
+        config.se_handler_count.unwrap_or(0) > 0 &&
+        config.se_handler_table.unwrap_or(0UL) != 0UL
+      None => false
+    }
+    if !safe_seh {
+      diagnostics.push({
+        severity: Warning,
+        code: "pe.no-safeseh",
+        message: "32-bit image has neither NO_SEH nor SafeSEH metadata",
+      })
+    }
+  }
+  match load_config {
+    Some(config) if config.security_cookie.unwrap_or(0UL) == 0UL =>
+      diagnostics.push({
+        severity: Warning,
+        code: "pe.no-security-cookie",
+        message: "load-config does not declare a /GS security cookie",
+      })
+    _ => ()
   }
   let signed = match self.directory(4) {
     Some(directory) => directory.virtual_address != 0UL && directory.size != 0
