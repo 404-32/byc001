@@ -141,3 +141,103 @@ pub fn subsystem_name(subsystem : Int32) -> String {
     _ => "unknown"
   }
 }
+
+///|
+pub(all) struct ResourceEntry {
+  path : String
+  type_id : Int32?
+  name_id : Int32?
+  language_id : Int32?
+  data_rva : UInt64
+  file_offset : Int32?
+  size : Int32
+  code_page : Int32
+}
+
+///|
+pub(all) struct RelocationBlock {
+  page_rva : UInt64
+  entries : Array[RelocationEntry]
+}
+
+///|
+pub(all) struct RelocationEntry {
+  relocation_type : Int32
+  offset : Int32
+  target_rva : UInt64
+}
+
+///|
+pub(all) struct DelayImportLibrary {
+  name : String
+  attributes : Int32
+  timestamp : Int32
+  symbols : Array[ImportSymbol]
+}
+
+///|
+pub(all) struct TlsInfo {
+  raw_data_start : UInt64
+  raw_data_end : UInt64
+  index_address : UInt64
+  callbacks_address : UInt64
+  size_of_zero_fill : Int32
+  characteristics : Int32
+  callbacks : Array[UInt64]
+}
+
+///|
+pub(all) struct DebugEntry {
+  debug_type : Int32
+  type_name : String
+  timestamp : Int32
+  size_of_data : Int32
+  address_of_raw_data : UInt64
+  pointer_to_raw_data : Int32
+  pdb_path : String?
+  pdb_age : Int32?
+  pdb_guid : String?
+}
+
+///|
+pub(all) struct LoadConfigInfo {
+  structure_size : Int32
+  timestamp : Int32
+  global_flags_clear : Int32?
+  global_flags_set : Int32?
+  security_cookie : UInt64?
+  se_handler_table : UInt64?
+  se_handler_count : Int32?
+  guard_cf_check_pointer : UInt64?
+  guard_cf_dispatch_pointer : UInt64?
+  guard_cf_function_table : UInt64?
+  guard_cf_function_count : Int32?
+  guard_flags : Int32?
+}
+
+///|
+pub(all) struct ExceptionEntry {
+  begin_rva : UInt64
+  end_rva : UInt64
+  unwind_info_rva : UInt64
+}
+
+///|
+pub(all) struct DiffItem {
+  field : String
+  before : String
+  after : String
+}
+
+///|
+pub fn PEImage::va_to_rva(self : Self, va : UInt64) -> UInt64? {
+  if va < self.image_base {
+    return None
+  }
+  let rva = va - self.image_base
+  if rva < self.size_of_image.to_uint64() {
+    Some(rva)
+  } else {
+    None
+  }
+}
