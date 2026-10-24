@@ -273,6 +273,14 @@ pub(all) struct OverlayInfo {
 }
 
 ///|
+pub(all) struct ChecksumInfo {
+  stored : Int32
+  computed : Int32
+  present : Bool
+  valid : Bool
+}
+
+///|
 pub fn PEImage::va_to_rva(self : Self, va : UInt64) -> UInt64? {
   if va < self.image_base {
     return None

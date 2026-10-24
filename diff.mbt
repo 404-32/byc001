@@ -90,6 +90,12 @@ pub fn PEImage::diff(self : Self, other : Self) -> Array[DiffItem] {
   )
   compare_field(
     changes,
+    "checksum",
+    checksum_signature(self),
+    checksum_signature(other),
+  )
+  compare_field(
+    changes,
     "security-diagnostics",
     diagnostics_signature(self),
     diagnostics_signature(other),
@@ -202,6 +208,12 @@ fn overlay_signature(image : PEImage) -> String {
     Some(overlay) => "\{overlay.offset}:\{overlay.size}"
     None => ""
   }
+}
+
+///|
+fn checksum_signature(image : PEImage) -> String {
+  let checksum = image.checksum_info()
+  "\{checksum.present}/\{checksum.valid}/\{checksum.computed}"
 }
 
 ///|

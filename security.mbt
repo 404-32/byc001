@@ -146,6 +146,14 @@ pub fn PEImage::security_diagnostics(self : Self) -> Array[Diagnostic] {
       })
     None => ()
   }
+  let checksum = self.checksum_info()
+  if checksum.present && !checksum.valid {
+    diagnostics.push({
+      severity: Warning,
+      code: "pe.checksum-mismatch",
+      message: "stored PE checksum does not match the file contents",
+    })
+  }
   diagnostics
 }
 
