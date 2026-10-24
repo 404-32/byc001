@@ -453,6 +453,35 @@ test "parse bound imports CLR certificate and overlay" {
 }
 
 ///|
+test "calculate and validate PE checksum" {
+  let bytes = build_pe32_array()
+  let initial = PEImage::parse(Bytes::from_array(bytes))
+  let initial_checksum = initial.checksum_info()
+  assert_true(!initial_checksum.present)
+  put_u32(bytes, 0xd8, initial_checksum.computed)
+  let image = PEImage::parse(Bytes::from_array(bytes))
+  let checksum = image.checksum_info()
+  assert_true(checksum.present)
+  assert_true(checksum.valid)
+  assert_eq(checksum.stored, checksum.computed)
+}
+
+///|
+test "checksum mismatch appears in security diagnostics" {
+  let bytes = build_pe32_array()
+  put_u32(bytes, 0xd8, 1)
+  let image = PEImage::parse(Bytes::from_array(bytes))
+  let diagnostics = image.security_diagnostics()
+  let mut mismatch = false
+  for diagnostic in diagnostics {
+    if diagnostic.code == "pe.checksum-mismatch" {
+      mismatch = true
+    }
+  }
+  assert_true(mismatch)
+}
+
+///|
 test "absent directories return empty optional values" {
   let image = PEImage::parse(Bytes::from_array(build_pe32_plus_array()))
   assert_eq(image.resources().length(), 0)
