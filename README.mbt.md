@@ -33,6 +33,8 @@ byte access. This project owns the domain logic:
 - Export extraction with ordinal and forwarder resolution.
 - Resource trees, base relocations, delay imports, TLS callbacks, CodeView PDB
   metadata, Load Config, and exception entries.
+- Bound-import descriptors, CLR/.NET headers, Authenticode certificate records,
+  and overlay detection.
 - Security diagnostics for ASLR, NX, CFG metadata, SafeSEH, security cookies,
   high-entropy VA, RWX sections, relocations, executable entry points, and
   certificate-table presence.
@@ -46,11 +48,11 @@ byte access. This project owns the domain logic:
 Install from mooncakes.io:
 
 ```bash
-moon add 404-32/moon-pe-inspect@0.2.0
+moon add 404-32/moon-pe-inspect@0.3.0
 ```
 
 Package page:
-https://mooncakes.io/docs/404-32/moon-pe-inspect/0.2.0
+https://mooncakes.io/docs/404-32/moon-pe-inspect/0.3.0
 
 Build and test from source:
 
@@ -87,6 +89,10 @@ moon run cmd/main -- directories examples/minimal-pe32.exe
 moon run cmd/main -- resources examples/minimal-pe32.exe
 moon run cmd/main -- delay-imports examples/minimal-pe32.exe
 moon run cmd/main -- load-config examples/minimal-pe32.exe
+moon run cmd/main -- bound-imports examples/minimal-pe32.exe
+moon run cmd/main -- clr examples/minimal-pe32.exe
+moon run cmd/main -- certificates examples/minimal-pe32.exe
+moon run cmd/main -- overlay examples/minimal-pe32.exe
 moon run cmd/main -- diff examples/minimal-pe32.exe examples/minimal-pe32plus.exe
 ```
 
@@ -131,6 +137,18 @@ let load_config = image.load_config()
 
 ///|
 let exceptions = image.exception_entries()
+
+///|
+let bound_imports = image.bound_imports()
+
+///|
+let clr_header = image.clr_header()
+
+///|
+let certificates = image.certificates()
+
+///|
+let overlay = image.overlay()
 
 ///|
 let diagnostics = image.security_diagnostics()

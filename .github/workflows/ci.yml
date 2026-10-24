@@ -48,5 +48,9 @@ jobs:
           moon run cmd/main -- debug examples/minimal-pe32.exe --json
           moon run cmd/main -- load-config examples/minimal-pe32.exe --json
           moon run cmd/main -- exceptions examples/minimal-pe32.exe --json
+          moon run cmd/main -- bound-imports examples/minimal-pe32.exe --json
+          moon run cmd/main -- clr examples/minimal-pe32.exe --json
+          moon run cmd/main -- certificates examples/minimal-pe32.exe --json
+          moon run cmd/main -- overlay examples/minimal-pe32.exe --json
           moon run cmd/main -- diff examples/minimal-pe32.exe examples/minimal-pe32plus.exe --json
           moon run cmd/main -- security examples/minimal-pe32plus.exe --json

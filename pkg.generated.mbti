@@ -4,6 +4,8 @@ package "404-32/moon-pe-inspect"
 // Values
 pub fn architecture_name(Int) -> String
 
+pub fn certificate_type_name(Int) -> String
+
 pub fn relocation_type_name(Int) -> String
 
 pub fn subsystem_name(Int) -> String
@@ -14,6 +16,37 @@ pub(all) suberror PeError {
 }
 
 // Types and methods
+pub(all) struct BoundForwarder {
+  name : String
+  timestamp : Int
+}
+
+pub(all) struct BoundImport {
+  name : String
+  timestamp : Int
+  forwarders : Array[BoundForwarder]
+}
+
+pub(all) struct CertificateRecord {
+  length : Int
+  revision : Int
+  certificate_type : Int
+}
+
+pub(all) struct ClrHeaderInfo {
+  header_size : Int
+  major_runtime_version : Int
+  minor_runtime_version : Int
+  metadata_rva : UInt64
+  metadata_size : Int
+  flags : Int
+  entry_point_token : Int
+  resources_rva : UInt64
+  resources_size : Int
+  strong_name_rva : UInt64
+  strong_name_size : Int
+}
+
 pub(all) struct DataDirectory {
   index : Int
   name : String
@@ -91,6 +124,11 @@ pub(all) struct LoadConfigInfo {
   guard_flags : Int?
 }
 
+pub(all) struct OverlayInfo {
+  offset : Int
+  size : Int
+}
+
 pub(all) enum PEFormat {
   PE32
   PE32Plus
@@ -120,6 +158,9 @@ pub(all) struct PEImage {
   directories : Array[DataDirectory]
 }
 pub fn PEImage::base_relocations(Self) -> Array[RelocationBlock] raise PeError
+pub fn PEImage::bound_imports(Self) -> Array[BoundImport] raise PeError
+pub fn PEImage::certificates(Self) -> Array[CertificateRecord] raise PeError
+pub fn PEImage::clr_header(Self) -> ClrHeaderInfo? raise PeError
 pub fn PEImage::debug_entries(Self) -> Array[DebugEntry] raise PeError
 pub fn PEImage::delay_imports(Self) -> Array[DelayImportLibrary] raise PeError
 pub fn PEImage::diff(Self, Self) -> Array[DiffItem]
@@ -129,6 +170,7 @@ pub fn PEImage::exports(Self) -> Array[ExportSymbol] raise PeError
 pub fn PEImage::imports(Self) -> Array[ImportLibrary] raise PeError
 pub fn PEImage::is_64_bit(Self) -> Bool
 pub fn PEImage::load_config(Self) -> LoadConfigInfo? raise PeError
+pub fn PEImage::overlay(Self) -> OverlayInfo?
 pub fn PEImage::parse(Bytes) -> Self raise PeError
 pub fn PEImage::read_c_string(Self, UInt64, Int) -> String raise PeError
 pub fn PEImage::resources(Self) -> Array[ResourceEntry] raise PeError
