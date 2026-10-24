@@ -131,6 +131,19 @@ pub fn PEImage::security_diagnostics(self : Self) -> Array[Diagnostic] {
       message: "no Authenticode certificate table is present",
     })
   }
+  match self.overlay() {
+    Some(overlay) =>
+      diagnostics.push({
+        severity: if overlay.size > 1048576 {
+          Warning
+        } else {
+          Info
+        },
+        code: "pe.overlay",
+        message: "file contains \{overlay.size} bytes after the mapped PE sections",
+      })
+    None => ()
+  }
   diagnostics
 }
 

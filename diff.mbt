@@ -69,6 +69,25 @@ pub fn PEImage::diff(self : Self, other : Self) -> Array[DiffItem] {
   )
   compare_field(
     changes,
+    "bound-imports",
+    bound_imports_signature(self),
+    bound_imports_signature(other),
+  )
+  compare_field(changes, "clr", clr_signature(self), clr_signature(other))
+  compare_field(
+    changes,
+    "certificates",
+    certificates_signature(self),
+    certificates_signature(other),
+  )
+  compare_field(
+    changes,
+    "overlay",
+    overlay_signature(self),
+    overlay_signature(other),
+  )
+  compare_field(
+    changes,
     "security-diagnostics",
     diagnostics_signature(self),
     diagnostics_signature(other),
@@ -134,6 +153,53 @@ fn directories_signature(image : PEImage) -> String {
     }
   }
   values.join(",")
+}
+
+///|
+fn bound_imports_signature(image : PEImage) -> String {
+  try {
+    let values = []
+    for item in image.bound_imports() {
+      values.push("\{item.name}(\{item.forwarders.length()})")
+    }
+    values.join(",")
+  } catch {
+    PeError(_, _) => "<unreadable>"
+  }
+}
+
+///|
+fn clr_signature(image : PEImage) -> String {
+  try {
+    match image.clr_header() {
+      Some(header) =>
+        "\{header.metadata_rva}/\{header.metadata_size}/\{header.entry_point_token}"
+      None => ""
+    }
+  } catch {
+    PeError(_, _) => "<unreadable>"
+  }
+}
+
+///|
+fn certificates_signature(image : PEImage) -> String {
+  try {
+    let values = []
+    for record in image.certificates() {
+      values.push("\{record.certificate_type}:\{record.length}")
+    }
+    values.join(",")
+  } catch {
+    PeError(_, _) => "<unreadable>"
+  }
+}
+
+///|
+fn overlay_signature(image : PEImage) -> String {
+  match image.overlay() {
+    Some(overlay) => "\{overlay.offset}:\{overlay.size}"
+    None => ""
+  }
 }
 
 ///|
