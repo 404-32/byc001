@@ -19,7 +19,7 @@ def put_ascii(buf: bytearray, offset: int, value: str) -> None:
 
 
 def pe32_fixture() -> bytes:
-    buf = bytearray(0x1000)
+    buf = bytearray(0x1020)
     buf[0:2] = b"MZ"
     put(buf, 0x3C, "<I", 0x80)
     buf[0x80:0x84] = b"PE\0\0"
@@ -39,11 +39,14 @@ def pe32_fixture() -> bytes:
     put(buf, directories, "<IIII", 0x1100, 0x100, 0x1080, 40)
     put(buf, directories + 16, "<II", 0x1200, 0x100)
     put(buf, directories + 24, "<II", 0x1700, 12)
+    put(buf, directories + 32, "<II", 0xD00, 16)
     put(buf, directories + 40, "<II", 0x1300, 12)
     put(buf, directories + 48, "<II", 0x1400, 28)
     put(buf, directories + 72, "<II", 0x1500, 24)
     put(buf, directories + 80, "<II", 0x1600, 92)
+    put(buf, directories + 88, "<II", 0x1900, 40)
     put(buf, directories + 104, "<II", 0x1800, 64)
+    put(buf, directories + 112, "<II", 0x1A00, 72)
 
     section = optional + 0xE0
     put_ascii(buf, section, ".text")
@@ -117,6 +120,23 @@ def pe32_fixture() -> bytes:
     put(buf, 0xC90, "<II", 0x1AA0, 0)
     put(buf, 0xCA0, "<H", 0)
     put_ascii(buf, 0xCA2, "MessageBoxW")
+
+    # Bound import directory.
+    put(buf, 0xB00, "<IHH", 456, 0x28, 1)
+    put(buf, 0xB08, "<IHH", 789, 0x38, 0)
+    put_ascii(buf, 0xB28, "KERNEL32.dll")
+    put_ascii(buf, 0xB38, "NTDLL.dll")
+
+    # Minimal CLR/.NET header.
+    put(buf, 0xC00, "<IHH", 72, 2, 5)
+    put(buf, 0xC08, "<II", 0x1A50, 8)
+    put(buf, 0xC10, "<II", 1, 0x06000001)
+
+    # Authenticode certificate record.
+    put(buf, 0xD00, "<IHH", 16, 0x0200, 2)
+
+    # Data after the final section is reported as overlay.
+    put_ascii(buf, 0x1000, "OVERLAY")
     return bytes(buf)
 
 

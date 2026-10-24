@@ -30,7 +30,7 @@ fn put_ascii(buffer : Array[Byte], offset : Int32, text : String) -> Unit {
 
 ///|
 fn build_pe32_array() -> Array[Byte] {
-  let buffer = Array::make(0x1000, b'\x00')
+  let buffer = Array::make(0x1020, b'\x00')
   buffer[0] = b'M'
   buffer[1] = b'Z'
   put_u32(buffer, 0x3c, 0x80)
@@ -62,6 +62,8 @@ fn build_pe32_array() -> Array[Byte] {
   put_u32(buffer, directories + 20, 0x100)
   put_u32(buffer, directories + 24, 0x1700)
   put_u32(buffer, directories + 28, 12)
+  put_u32(buffer, directories + 32, 0xd00)
+  put_u32(buffer, directories + 36, 16)
   put_u32(buffer, directories + 40, 0x1300)
   put_u32(buffer, directories + 44, 12)
   put_u32(buffer, directories + 48, 0x1400)
@@ -70,8 +72,12 @@ fn build_pe32_array() -> Array[Byte] {
   put_u32(buffer, directories + 76, 24)
   put_u32(buffer, directories + 80, 0x1600)
   put_u32(buffer, directories + 84, 92)
+  put_u32(buffer, directories + 88, 0x1900)
+  put_u32(buffer, directories + 92, 40)
   put_u32(buffer, directories + 104, 0x1800)
   put_u32(buffer, directories + 108, 64)
+  put_u32(buffer, directories + 112, 0x1a00)
+  put_u32(buffer, directories + 116, 72)
   let section = optional + 0xe0
   put_ascii(buffer, section, ".text")
   put_u32(buffer, section + 8, 0xc00)
@@ -179,6 +185,32 @@ fn build_pe32_array() -> Array[Byte] {
   put_u32(buffer, 0xc94, 0)
   put_u16(buffer, 0xca0, 0)
   put_ascii(buffer, 0xca2, "MessageBoxW")
+
+  // Bound import directory.
+  put_u32(buffer, 0xb00, 456)
+  put_u16(buffer, 0xb04, 0x28)
+  put_u16(buffer, 0xb06, 1)
+  put_u32(buffer, 0xb08, 789)
+  put_u16(buffer, 0xb0c, 0x38)
+  put_ascii(buffer, 0xb28, "KERNEL32.dll")
+  put_ascii(buffer, 0xb38, "NTDLL.dll")
+
+  // Minimal CLR/.NET header.
+  put_u32(buffer, 0xc00, 72)
+  put_u16(buffer, 0xc04, 2)
+  put_u16(buffer, 0xc06, 5)
+  put_u32(buffer, 0xc08, 0x1a50)
+  put_u32(buffer, 0xc0c, 8)
+  put_u32(buffer, 0xc10, 1)
+  put_u32(buffer, 0xc14, 0x06000001)
+
+  // Authenticode certificate record.
+  put_u32(buffer, 0xd00, 16)
+  put_u16(buffer, 0xd04, 0x0200)
+  put_u16(buffer, 0xd06, 2)
+
+  // Data after the final section is reported as overlay.
+  put_ascii(buffer, 0x1000, "OVERLAY")
   buffer
 }
 
@@ -308,7 +340,7 @@ test "security diagnostics detect hardening flags and RWX" {
   let diagnostics = image.security_diagnostics()
   let mut saw_rwx = false
   let mut saw_no_aslr = false
-  let mut saw_unsigned = false
+  let mut saw_certificate = false
   for diagnostic in diagnostics {
     if diagnostic.code == "pe.rwx-section" {
       saw_rwx = true
@@ -316,13 +348,13 @@ test "security diagnostics detect hardening flags and RWX" {
     if diagnostic.code == "pe.no-aslr" {
       saw_no_aslr = true
     }
-    if diagnostic.code == "pe.unsigned" {
-      saw_unsigned = true
+    if diagnostic.code == "pe.certificate-table" {
+      saw_certificate = true
     }
   }
   assert_true(saw_rwx)
   assert_true(saw_no_aslr)
-  assert_true(saw_unsigned)
+  assert_true(saw_certificate)
 }
 
 ///|
@@ -392,6 +424,30 @@ test "artifact diff reports metadata sections and hardening changes" {
   }
   assert_true(saw_flags)
   assert_true(saw_sections)
+}
+
+///|
+test "parse bound imports CLR certificate and overlay" {
+  let image = PEImage::parse(Bytes::from_array(build_pe32_array()))
+  let bound = image.bound_imports()
+  assert_eq(bound.length(), 1)
+  assert_eq(bound[0].name, "KERNEL32.dll")
+  assert_eq(bound[0].forwarders[0].name, "NTDLL.dll")
+
+  let clr = image.clr_header().unwrap()
+  assert_eq(clr.header_size, 72)
+  assert_eq(clr.metadata_rva, 0x1a50UL)
+  assert_eq(clr.metadata_size, 8)
+  assert_eq(clr.entry_point_token, 0x06000001)
+
+  let certificates = image.certificates()
+  assert_eq(certificates.length(), 1)
+  assert_eq(certificates[0].certificate_type, 2)
+  assert_eq(certificate_type_name(2), "pkcs-signed-data")
+
+  let overlay = image.overlay().unwrap()
+  assert_eq(overlay.offset, 0x1000)
+  assert_eq(overlay.size, 0x20)
 }
 
 ///|
