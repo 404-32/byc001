@@ -1,5 +1,7 @@
 # moon-pe-inspect
 
+[![CI](https://github.com/404-32/byc001/actions/workflows/ci.yml/badge.svg)](https://github.com/404-32/byc001/actions/workflows/ci.yml)
+
 A pure MoonBit PE/COFF inspector for build artifacts and security metadata.
 
 `moon-pe-inspect` parses Windows PE files without loading or executing them. It
@@ -48,11 +50,11 @@ byte access. This project owns the domain logic:
 Install from mooncakes.io:
 
 ```bash
-moon add 404-32/moon-pe-inspect@0.3.0
+moon add 404-32/moon-pe-inspect@0.3.1
 ```
 
 Package page:
-https://mooncakes.io/docs/404-32/moon-pe-inspect/0.3.0
+https://mooncakes.io/docs/404-32/moon-pe-inspect/0.3.1
 
 Build and test from source:
 
@@ -185,6 +187,30 @@ This project inspects static PE metadata. It does not load or execute images,
 perform disassembly, unpack compressed binaries, validate certificate chains, or
 parse every Windows-specific data directory. New formats and checks can be added
 without changing the safe binary-reader foundation.
+
+## MoonBit ecosystem fit
+
+- Publishable MoonBit module with a stable `moon add` entry point.
+- Pure MoonBit parsing core with bounded reads and no unsafe native dependency.
+- Wasm-first execution for cross-platform use in CI.
+- Library, CLI, JSON, examples, and generated public interfaces live together.
+- Official `moonbitlang/async` is used only by the CLI file-I/O layer.
+
+## References
+
+- Microsoft PE Format:
+  https://learn.microsoft.com/windows/win32/debug/pe-format
+- Apache License 2.0:
+  https://www.apache.org/licenses/LICENSE-2.0
+
+The implementation is original code derived from the public format
+specification. It does not vendor or copy existing parser implementations.
+
+## License and security
+
+The project is licensed under Apache-2.0. See `SECURITY.md` for the trusted-input
+model and vulnerability reporting guidance, and `THIRD_PARTY_NOTICES.md` for the
+runtime dependency notice.
 
 ## Development
 

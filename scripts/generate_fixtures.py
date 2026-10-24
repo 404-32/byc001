@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 #!/usr/bin/env python3
 """Generate deterministic PE32 and PE32+ fixtures used by local and CI demos."""
 

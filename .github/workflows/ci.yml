@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 name: CI
 
 on:
@@ -31,6 +32,9 @@ jobs:
 
       - name: Tests
         run: moon test --target wasm --deny-warn
+
+      - name: Package
+        run: moon package
 
       - name: Reproduce fixtures
         run: |
