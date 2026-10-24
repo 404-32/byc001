@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-10-24
+
+- Added stored/computed PE checksum verification.
+- Added CI-oriented `lint` security gate and SARIF 2.1.0 output.
+- Added checksum mismatch diagnostics and artifact-diff coverage.
+
 ## 0.3.1 - 2026-10-24
 
 - Added open-source compliance, security, design, contribution, and API docs.

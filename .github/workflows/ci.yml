@@ -56,5 +56,18 @@ jobs:
           moon run cmd/main -- clr examples/minimal-pe32.exe --json
           moon run cmd/main -- certificates examples/minimal-pe32.exe --json
           moon run cmd/main -- overlay examples/minimal-pe32.exe --json
+          moon run cmd/main -- checksum examples/minimal-pe32.exe --json
+          moon run cmd/main -- security examples/minimal-pe32.exe --sarif > /tmp/pe-security.sarif
+          python3 -m json.tool /tmp/pe-security.sarif > /dev/null
           moon run cmd/main -- diff examples/minimal-pe32.exe examples/minimal-pe32plus.exe --json
           moon run cmd/main -- security examples/minimal-pe32plus.exe --json
+
+      - name: Security lint gate
+        run: |
+          set +e
+          moon run cmd/main -- lint examples/minimal-pe32.exe --json > /tmp/pe-lint.json
+          status=$?
+          set -e
+          test "$status" -ne 0
+          python3 -m json.tool /tmp/pe-lint.json > /dev/null
+          grep -q '"passed":false' /tmp/pe-lint.json

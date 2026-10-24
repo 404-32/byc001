@@ -33,6 +33,13 @@ pub(all) struct CertificateRecord {
   certificate_type : Int
 }
 
+pub(all) struct ChecksumInfo {
+  stored : Int
+  computed : Int
+  present : Bool
+  valid : Bool
+}
+
 pub(all) struct ClrHeaderInfo {
   header_size : Int
   major_runtime_version : Int
@@ -160,6 +167,7 @@ pub(all) struct PEImage {
 pub fn PEImage::base_relocations(Self) -> Array[RelocationBlock] raise PeError
 pub fn PEImage::bound_imports(Self) -> Array[BoundImport] raise PeError
 pub fn PEImage::certificates(Self) -> Array[CertificateRecord] raise PeError
+pub fn PEImage::checksum_info(Self) -> ChecksumInfo
 pub fn PEImage::clr_header(Self) -> ClrHeaderInfo? raise PeError
 pub fn PEImage::debug_entries(Self) -> Array[DebugEntry] raise PeError
 pub fn PEImage::delay_imports(Self) -> Array[DelayImportLibrary] raise PeError

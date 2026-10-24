@@ -40,8 +40,10 @@ byte access. This project owns the domain logic:
 - Security diagnostics for ASLR, NX, CFG metadata, SafeSEH, security cookies,
   high-entropy VA, RWX sections, relocations, executable entry points, and
   certificate-table presence.
+- PE checksum calculation and stored-checksum validation.
 - Artifact diffing for headers, sections, imports, exports, directories, and
   security findings.
+- CI security gate and SARIF 2.1.0 output.
 - CLI commands with human-readable and JSON output.
 - Reproducible synthetic PE fixtures for tests and demonstrations.
 
@@ -50,11 +52,11 @@ byte access. This project owns the domain logic:
 Install from mooncakes.io:
 
 ```bash
-moon add 404-32/moon-pe-inspect@0.3.1
+moon add 404-32/moon-pe-inspect@0.4.0
 ```
 
 Package page:
-https://mooncakes.io/docs/404-32/moon-pe-inspect/0.3.1
+https://mooncakes.io/docs/404-32/moon-pe-inspect/0.4.0
 
 Build and test from source:
 
@@ -95,7 +97,15 @@ moon run cmd/main -- bound-imports examples/minimal-pe32.exe
 moon run cmd/main -- clr examples/minimal-pe32.exe
 moon run cmd/main -- certificates examples/minimal-pe32.exe
 moon run cmd/main -- overlay examples/minimal-pe32.exe
+moon run cmd/main -- checksum examples/minimal-pe32.exe
 moon run cmd/main -- diff examples/minimal-pe32.exe examples/minimal-pe32plus.exe
+```
+
+Use the security gate or SARIF output in CI:
+
+```bash
+moon run cmd/main -- lint examples/minimal-pe32.exe --json
+moon run cmd/main -- security examples/minimal-pe32.exe --sarif
 ```
 
 Inspect a real Windows binary:
@@ -153,6 +163,9 @@ let certificates = image.certificates()
 let overlay = image.overlay()
 
 ///|
+let checksum = image.checksum_info()
+
+///|
 let diagnostics = image.security_diagnostics()
 
 ///|
@@ -177,6 +190,7 @@ message.
 - `pe.entrypoint-not-executable`: entry point is outside executable sections.
 - `pe.unsigned`: no certificate table is present.
 - `pe.certificate-table`: certificate data exists, but the tool does not verify it.
+- `pe.checksum-mismatch`: the stored PE checksum does not match the file.
 
 The last distinction is intentional: detecting an Authenticode certificate table
 is not the same as validating a signature.
@@ -219,6 +233,7 @@ python scripts/generate_fixtures.py
 moon check --target wasm --deny-warn
 moon test --target wasm --deny-warn
 moon fmt --check
+moon package
 moon run cmd/main -- inspect examples/minimal-pe32.exe
 ```
 

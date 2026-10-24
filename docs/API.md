@@ -33,6 +33,7 @@ let bound_imports = image.bound_imports()
 let clr = image.clr_header()
 let certificates = image.certificates()
 let overlay = image.overlay()
+let checksum = image.checksum_info()
 ```
 
 Optional directories return an empty array or `None` when absent. Malformed
@@ -48,7 +49,12 @@ let changes = image.diff(other_image)
 Security diagnostics are advisory. Certificate and CLR findings describe present
 metadata and do not establish trust.
 
+`checksum_info()` reports the stored value, computed value, whether a checksum was
+present, and whether it is valid.
+
 ## CLI
 
 Run `moon run cmd/main -- --help` for the complete command list. Every metadata
 command accepts `--json`, and `diff` accepts two PE paths.
+`security` also accepts `--sarif`, while `lint` provides a CI gate with JSON or
+SARIF output.
