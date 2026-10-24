@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 pub fn PEImage::overlay(self : Self) -> OverlayInfo? {
   let mut max_end = self.size_of_headers

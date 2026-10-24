@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 pub fn PEImage::resources(self : Self) -> Array[ResourceEntry] raise PeError {
   let directory = match self.directory(2) {

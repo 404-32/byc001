@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 pub fn PEImage::bound_imports(self : Self) -> Array[BoundImport] raise PeError {
   let directory = match self.directory(11) {

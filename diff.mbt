@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 pub fn PEImage::diff(self : Self, other : Self) -> Array[DiffItem] {
   let changes = []

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 pub fn PEImage::clr_header(self : Self) -> ClrHeaderInfo? raise PeError {
   let directory = match self.directory(14) {

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 pub fn PEImage::parse(data : Bytes) -> Self raise PeError {
   if data.length() < 64 {

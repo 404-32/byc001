@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 fn put_u16(buffer : Array[Byte], offset : Int32, value : Int32) -> Unit {
   buffer[offset] = value.to_byte()
@@ -448,6 +450,58 @@ test "parse bound imports CLR certificate and overlay" {
   let overlay = image.overlay().unwrap()
   assert_eq(overlay.offset, 0x1000)
   assert_eq(overlay.size, 0x20)
+}
+
+///|
+test "absent directories return empty optional values" {
+  let image = PEImage::parse(Bytes::from_array(build_pe32_plus_array()))
+  assert_eq(image.resources().length(), 0)
+  assert_eq(image.base_relocations().length(), 0)
+  assert_eq(image.delay_imports().length(), 0)
+  assert_eq(image.debug_entries().length(), 0)
+  assert_eq(image.exception_entries().length(), 0)
+  assert_eq(image.bound_imports().length(), 0)
+  assert_eq(image.certificates().length(), 0)
+  assert_true(image.tls() is None)
+  assert_true(image.clr_header() is None)
+  assert_true(image.load_config() is None)
+  assert_true(image.overlay() is None)
+}
+
+///|
+test "malformed optional directories return bounded errors" {
+  let certificate_bytes = build_pe32_array()
+  put_u32(certificate_bytes, 0xd00, 4)
+  let certificate_error = try {
+    let image = PEImage::parse(Bytes::from_array(certificate_bytes))
+    let _ = image.certificates()
+    None
+  } catch {
+    PeError(offset, _) => Some(offset)
+  }
+  assert_eq(certificate_error, Some(0xd00))
+
+  let relocation_bytes = build_pe32_array()
+  put_u32(relocation_bytes, 0x504, 2)
+  let relocation_error = try {
+    let image = PEImage::parse(Bytes::from_array(relocation_bytes))
+    let _ = image.base_relocations()
+    None
+  } catch {
+    PeError(offset, _) => Some(offset)
+  }
+  assert_eq(relocation_error, Some(0x500))
+
+  let bound_bytes = build_pe32_array()
+  put_u16(bound_bytes, 0xb06, 2000)
+  let bound_error = try {
+    let image = PEImage::parse(Bytes::from_array(bound_bytes))
+    let _ = image.bound_imports()
+    None
+  } catch {
+    PeError(offset, _) => Some(offset)
+  }
+  assert_eq(bound_error, Some(0xb06))
 }
 
 ///|

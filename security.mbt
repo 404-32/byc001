@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 pub fn PEImage::security_diagnostics(self : Self) -> Array[Diagnostic] {
   let diagnostics = []

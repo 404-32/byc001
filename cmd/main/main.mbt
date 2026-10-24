@@ -1,5 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
-const VERSION : String = "0.3.0"
+const VERSION : String = "0.3.1"
 
 ///|
 const USAGE : String =

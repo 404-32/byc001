@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 pub fn PEImage::load_config(self : Self) -> LoadConfigInfo? raise PeError {
   let directory = match self.directory(10) {

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 ///|
 fn fail_at(offset : Int32, message : String) -> Unit raise PeError {
   raise PeError(offset, message)
