@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-const VERSION : String = "0.3.1"
+const VERSION : String = "0.4.0"
 
 ///|
 const USAGE : String =
@@ -25,6 +25,8 @@ const USAGE : String =
   #|  moon-pe-inspect clr <file> [--json]
   #|  moon-pe-inspect certificates <file> [--json]
   #|  moon-pe-inspect overlay <file> [--json]
+  #|  moon-pe-inspect checksum <file> [--json]
+  #|  moon-pe-inspect lint <file> [--json|--sarif]
   #|  moon-pe-inspect diff <left> <right> [--json]
 
 ///|
@@ -51,12 +53,19 @@ async fn main {
   let command = args[0]
   let positionals = []
   let mut json_mode = false
+  let mut sarif_mode = false
   for arg_index in 1..<args.length() {
     if args[arg_index] == "--json" {
       json_mode = true
+    } else if args[arg_index] == "--sarif" {
+      sarif_mode = true
     } else {
       positionals.push(args[arg_index])
     }
+  }
+  if sarif_mode && command != "security" && command != "lint" {
+    println("--sarif is only supported by security and lint")
+    abort("unsupported output format")
   }
   if command == "diff" {
     if positionals.length() != 2 {
@@ -76,7 +85,12 @@ async fn main {
     "sections" => sections(image, json_mode)
     "imports" => imports(image, json_mode)
     "exports" => exports(image, json_mode)
-    "security" => security(image, json_mode)
+    "security" =>
+      if sarif_mode {
+        security_sarif(image, positionals[0])
+      } else {
+        security(image, json_mode)
+      }
     "directories" => directories(image, json_mode)
     "resources" => resources(image, json_mode)
     "relocations" => relocations(image, json_mode)
@@ -89,6 +103,8 @@ async fn main {
     "clr" => clr(image, json_mode)
     "certificates" => certificates(image, json_mode)
     "overlay" => overlay(image, json_mode)
+    "checksum" => checksum(image, json_mode)
+    "lint" => lint(image, positionals[0], json_mode, sarif_mode)
     _ => {
       println("unknown command: \{command}")
       println(USAGE)
@@ -491,6 +507,60 @@ fn overlay(image : @pe.PEImage, json_mode : Bool) -> Unit {
       )
     None => println("no overlay")
   }
+}
+
+///|
+fn checksum(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let checksum = image.checksum_info()
+  if json_mode {
+    println(checksum_json(checksum))
+    return
+  }
+  println("stored: \{hex(checksum.stored.to_uint64())}")
+  println("computed: \{hex(checksum.computed.to_uint64())}")
+  println("present: \{checksum.present}")
+  println("valid: \{checksum.valid}")
+}
+
+///|
+fn lint(
+  image : @pe.PEImage,
+  path : String,
+  json_mode : Bool,
+  sarif_mode : Bool,
+) -> Unit {
+  let diagnostics = image.security_diagnostics()
+  let passed = diagnostics_pass(diagnostics)
+  if sarif_mode {
+    println(security_sarif_json(diagnostics, path))
+  } else if json_mode {
+    println(lint_json(diagnostics, path, passed))
+  } else {
+    for diagnostic in diagnostics {
+      println(
+        "[\{severity_name(diagnostic.severity)}] \{diagnostic.code}: \{diagnostic.message}",
+      )
+    }
+    println(if passed { "lint: PASS" } else { "lint: FAIL" })
+  }
+  if !passed {
+    abort("security lint failed")
+  }
+}
+
+///|
+fn security_sarif(image : @pe.PEImage, path : String) -> Unit {
+  println(security_sarif_json(image.security_diagnostics(), path))
+}
+
+///|
+fn diagnostics_pass(diagnostics : Array[@pe.Diagnostic]) -> Bool {
+  for diagnostic in diagnostics {
+    if diagnostic.severity is @pe.Warning || diagnostic.severity is @pe.Critical {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -976,6 +1046,114 @@ fn overlay_json(info : @pe.OverlayInfo?) -> String {
       builder.to_string()
     }
   }
+}
+
+///|
+fn checksum_json(checksum : @pe.ChecksumInfo) -> String {
+  let builder = StringBuilder()
+  builder.write_string("{\"stored\":")
+  write_json_string(builder, hex(checksum.stored.to_uint64()))
+  builder.write_string(",\"computed\":")
+  write_json_string(builder, hex(checksum.computed.to_uint64()))
+  builder.write_string(",\"present\":")
+  builder.write_string(if checksum.present { "true" } else { "false" })
+  builder.write_string(",\"valid\":")
+  builder.write_string(if checksum.valid { "true" } else { "false" })
+  builder.write_char('}')
+  builder.to_string()
+}
+
+///|
+fn lint_json(
+  diagnostics : Array[@pe.Diagnostic],
+  path : String,
+  passed : Bool,
+) -> String {
+  let builder = StringBuilder()
+  builder.write_string("{\"path\":")
+  write_json_string(builder, path)
+  builder.write_string(",\"passed\":")
+  builder.write_string(if passed { "true" } else { "false" })
+  builder.write_string(",\"diagnostics\":")
+  builder.write_string(diagnostics_json(diagnostics))
+  builder.write_char('}')
+  builder.to_string()
+}
+
+///|
+fn security_sarif_json(
+  diagnostics : Array[@pe.Diagnostic],
+  path : String,
+) -> String {
+  let rules = []
+  for diagnostic in diagnostics {
+    if !rules.contains(diagnostic.code) {
+      rules.push(diagnostic.code)
+    }
+  }
+  let builder = StringBuilder()
+  builder.write_string(
+    "{\"$schema\":\"https://json.schemastore.org/sarif-2.1.0.json\"",
+  )
+  builder.write_string(
+    ",\"version\":\"2.1.0\",\"runs\":[{\"tool\":{\"driver\":{",
+  )
+  builder.write_string("\"name\":\"moon-pe-inspect\",\"version\":")
+  write_json_string(builder, VERSION)
+  builder.write_string(",\"informationUri\":")
+  write_json_string(builder, "https://github.com/404-32/byc001")
+  builder.write_string(",\"rules\":[")
+  let mut first_rule = true
+  for rule in rules {
+    if !first_rule {
+      builder.write_char(',')
+    }
+    first_rule = false
+    builder.write_string("{\"id\":")
+    write_json_string(builder, rule)
+    builder.write_string(",\"shortDescription\":{\"text\":")
+    write_json_string(builder, "PE security rule \{rule}")
+    builder.write_string("}}")
+  }
+  builder.write_string("]}},\"results\":[")
+  let mut first_result = true
+  for diagnostic in diagnostics {
+    if !first_result {
+      builder.write_char(',')
+    }
+    first_result = false
+    builder.write_string("{\"ruleId\":")
+    write_json_string(builder, diagnostic.code)
+    builder.write_string(",\"level\":")
+    write_json_string(builder, sarif_level(diagnostic.severity))
+    builder.write_string(",\"message\":{\"text\":")
+    write_json_string(builder, diagnostic.message)
+    builder.write_string(
+      "},\"locations\":[{\"physicalLocation\":{\"artifactLocation\":{\"uri\":",
+    )
+    write_json_string(builder, slash_path(path))
+    builder.write_string("}}}]}")
+  }
+  builder.write_string("]}]}")
+  builder.to_string()
+}
+
+///|
+fn sarif_level(severity : @pe.Severity) -> String {
+  match severity {
+    @pe.Critical => "error"
+    @pe.Warning => "warning"
+    @pe.Info => "note"
+  }
+}
+
+///|
+fn slash_path(path : String) -> String {
+  let builder = StringBuilder()
+  for char in path {
+    builder.write_char(if char == '\\' { '/' } else { char })
+  }
+  builder.to_string()
 }
 
 ///|
