@@ -230,6 +230,47 @@ pub(all) struct DiffItem {
 }
 
 ///|
+pub(all) struct BoundForwarder {
+  name : String
+  timestamp : Int32
+}
+
+///|
+pub(all) struct BoundImport {
+  name : String
+  timestamp : Int32
+  forwarders : Array[BoundForwarder]
+}
+
+///|
+pub(all) struct ClrHeaderInfo {
+  header_size : Int32
+  major_runtime_version : Int32
+  minor_runtime_version : Int32
+  metadata_rva : UInt64
+  metadata_size : Int32
+  flags : Int32
+  entry_point_token : Int32
+  resources_rva : UInt64
+  resources_size : Int32
+  strong_name_rva : UInt64
+  strong_name_size : Int32
+}
+
+///|
+pub(all) struct CertificateRecord {
+  length : Int32
+  revision : Int32
+  certificate_type : Int32
+}
+
+///|
+pub(all) struct OverlayInfo {
+  offset : Int32
+  size : Int32
+}
+
+///|
 pub fn PEImage::va_to_rva(self : Self, va : UInt64) -> UInt64? {
   if va < self.image_base {
     return None
