@@ -1,5 +1,5 @@
 ///|
-const VERSION : String = "0.2.0"
+const VERSION : String = "0.3.0"
 
 ///|
 const USAGE : String =
@@ -19,6 +19,10 @@ const USAGE : String =
   #|  moon-pe-inspect debug <file> [--json]
   #|  moon-pe-inspect load-config <file> [--json]
   #|  moon-pe-inspect exceptions <file> [--json]
+  #|  moon-pe-inspect bound-imports <file> [--json]
+  #|  moon-pe-inspect clr <file> [--json]
+  #|  moon-pe-inspect certificates <file> [--json]
+  #|  moon-pe-inspect overlay <file> [--json]
   #|  moon-pe-inspect diff <left> <right> [--json]
 
 ///|
@@ -79,6 +83,10 @@ async fn main {
     "debug" => debug(image, json_mode)
     "load-config" => load_config(image, json_mode)
     "exceptions" => exceptions(image, json_mode)
+    "bound-imports" => bound_imports(image, json_mode)
+    "clr" => clr(image, json_mode)
+    "certificates" => certificates(image, json_mode)
+    "overlay" => overlay(image, json_mode)
     _ => {
       println("unknown command: \{command}")
       println(USAGE)
@@ -137,6 +145,13 @@ fn inspect(image : @pe.PEImage, json_mode : Bool) -> Unit {
     }
   }
   println("directories: \{directories.join(",")}")
+  match image.overlay() {
+    Some(overlay) =>
+      println(
+        "overlay: offset=\{hex(overlay.offset.to_uint64())} size=\{overlay.size}",
+      )
+    None => ()
+  }
   let diagnostics = image.security_diagnostics()
   println("security diagnostics: \{diagnostics.length()}")
   for diagnostic in diagnostics {
@@ -395,6 +410,88 @@ fn exceptions(image : @pe.PEImage, json_mode : Bool) -> Unit {
 }
 
 ///|
+fn bound_imports(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let imports = image.bound_imports() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid bound-import directory: offset=\{offset}: \{message}")
+      abort("bound-import parse failed")
+    }
+  }
+  if json_mode {
+    println(bound_imports_json(imports))
+    return
+  }
+  for item in imports {
+    println("\{item.name} timestamp=\{item.timestamp}")
+    for forwarder in item.forwarders {
+      println("  -> \{forwarder.name}")
+    }
+  }
+}
+
+///|
+fn clr(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let header = image.clr_header() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid CLR header: offset=\{offset}: \{message}")
+      abort("CLR parse failed")
+    }
+  }
+  if json_mode {
+    println(clr_json(header))
+    return
+  }
+  match header {
+    Some(header) => {
+      println(
+        "runtime: \{header.major_runtime_version}.\{header.minor_runtime_version}",
+      )
+      println(
+        "metadata: \{hex(header.metadata_rva)} size=\{header.metadata_size}",
+      )
+      println("flags: \{hex(header.flags.to_uint64())}")
+      println("entry-token: \{hex(header.entry_point_token.to_uint64())}")
+    }
+    None => println("no CLR header")
+  }
+}
+
+///|
+fn certificates(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let records = image.certificates() catch {
+    @pe.PeError(offset, message) => {
+      println("invalid certificate table: offset=\{offset}: \{message}")
+      abort("certificate parse failed")
+    }
+  }
+  if json_mode {
+    println(certificates_json(records))
+    return
+  }
+  for record in records {
+    println(
+      "\{@pe.certificate_type_name(record.certificate_type)} revision=\{hex(record.revision.to_uint64())} length=\{record.length}",
+    )
+  }
+}
+
+///|
+fn overlay(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let info = image.overlay()
+  if json_mode {
+    println(overlay_json(info))
+    return
+  }
+  match info {
+    Some(overlay) =>
+      println(
+        "overlay: offset=\{hex(overlay.offset.to_uint64())} size=\{overlay.size}",
+      )
+    None => println("no overlay")
+  }
+}
+
+///|
 async fn diff_files(
   left_path : String,
   right_path : String,
@@ -435,6 +532,8 @@ fn inspect_json(image : @pe.PEImage) -> String {
   builder.write_string(image.number_of_sections.to_string())
   builder.write_string(",\"directories\":")
   builder.write_string(directories_json(image))
+  builder.write_string(",\"overlay\":")
+  builder.write_string(overlay_json(image.overlay()))
   builder.write_string(",\"diagnostics\":")
   write_diagnostics(builder, image.security_diagnostics())
   builder.write_string("}")
@@ -776,6 +875,105 @@ fn exceptions_json(entries : Array[@pe.ExceptionEntry]) -> String {
   }
   builder.write_char(']')
   builder.to_string()
+}
+
+///|
+fn bound_imports_json(imports : Array[@pe.BoundImport]) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for item in imports {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"name\":")
+    write_json_string(builder, item.name)
+    builder.write_string(",\"timestamp\":")
+    builder.write_string(item.timestamp.to_string())
+    builder.write_string(",\"forwarders\":[")
+    let mut first_forwarder = true
+    for forwarder in item.forwarders {
+      if !first_forwarder {
+        builder.write_char(',')
+      }
+      first_forwarder = false
+      builder.write_string("{\"name\":")
+      write_json_string(builder, forwarder.name)
+      builder.write_string(",\"timestamp\":")
+      builder.write_string(forwarder.timestamp.to_string())
+      builder.write_char('}')
+    }
+    builder.write_string("]}")
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn clr_json(header : @pe.ClrHeaderInfo?) -> String {
+  match header {
+    None => "null"
+    Some(header) => {
+      let builder = StringBuilder()
+      builder.write_string("{\"runtime\":")
+      write_json_string(
+        builder,
+        "\{header.major_runtime_version}.\{header.minor_runtime_version}",
+      )
+      builder.write_string(",\"metadataRva\":")
+      write_json_string(builder, hex(header.metadata_rva))
+      builder.write_string(",\"metadataSize\":")
+      builder.write_string(header.metadata_size.to_string())
+      builder.write_string(",\"flags\":")
+      builder.write_string(header.flags.to_string())
+      builder.write_string(",\"entryPointToken\":")
+      builder.write_string(header.entry_point_token.to_string())
+      builder.write_char('}')
+      builder.to_string()
+    }
+  }
+}
+
+///|
+fn certificates_json(records : Array[@pe.CertificateRecord]) -> String {
+  let builder = StringBuilder()
+  builder.write_char('[')
+  let mut first = true
+  for record in records {
+    if !first {
+      builder.write_char(',')
+    }
+    first = false
+    builder.write_string("{\"type\":")
+    write_json_string(
+      builder,
+      @pe.certificate_type_name(record.certificate_type),
+    )
+    builder.write_string(",\"revision\":")
+    builder.write_string(record.revision.to_string())
+    builder.write_string(",\"length\":")
+    builder.write_string(record.length.to_string())
+    builder.write_char('}')
+  }
+  builder.write_char(']')
+  builder.to_string()
+}
+
+///|
+fn overlay_json(info : @pe.OverlayInfo?) -> String {
+  match info {
+    None => "null"
+    Some(overlay) => {
+      let builder = StringBuilder()
+      builder.write_string("{\"offset\":")
+      write_json_string(builder, hex(overlay.offset.to_uint64()))
+      builder.write_string(",\"size\":")
+      builder.write_string(overlay.size.to_string())
+      builder.write_char('}')
+      builder.to_string()
+    }
+  }
 }
 
 ///|
