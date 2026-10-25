@@ -216,8 +216,10 @@ pub fn PEImage::overlay(Self) -> OverlayInfo?
 pub fn PEImage::parse(Bytes) -> Self raise PeError
 pub fn PEImage::read_c_string(Self, UInt64, Int) -> String raise PeError
 pub fn PEImage::resources(Self) -> Array[ResourceEntry] raise PeError
+pub fn PEImage::rich_header(Self) -> RichHeaderInfo?
 pub fn PEImage::rva_to_offset(Self, UInt64) -> Int raise PeError
 pub fn PEImage::section_by_name(Self, String) -> Section?
+pub fn PEImage::section_entropies(Self) -> Array[SectionEntropy] raise PeError
 pub fn PEImage::security_diagnostics(Self) -> Array[Diagnostic]
 pub fn PEImage::tls(Self) -> TlsInfo? raise PeError
 pub fn PEImage::va_to_rva(Self, UInt64) -> UInt64?
@@ -244,6 +246,17 @@ pub(all) struct ResourceEntry {
   code_page : Int
 }
 
+pub(all) struct RichEntry {
+  product_id : Int
+  build_id : Int
+  use_count : Int
+}
+
+pub(all) struct RichHeaderInfo {
+  xor_key : UInt64
+  entries : Array[RichEntry]
+}
+
 pub(all) struct Section {
   name : String
   virtual_size : Int
@@ -251,6 +264,12 @@ pub(all) struct Section {
   raw_size : Int
   raw_offset : Int
   characteristics : UInt64
+}
+
+pub(all) struct SectionEntropy {
+  section_name : String
+  entropy : Double
+  raw_size : Int
 }
 
 pub(all) enum Severity {

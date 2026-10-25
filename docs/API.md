@@ -34,6 +34,8 @@ let clr = image.clr_header()
 let certificates = image.certificates()
 let overlay = image.overlay()
 let checksum = image.checksum_info()
+let rich = image.rich_header()
+let entropies = image.section_entropies()
 ```
 
 Standalone COFF objects use a separate parser:
@@ -59,6 +61,9 @@ metadata and do not establish trust.
 
 `checksum_info()` reports the stored value, computed value, whether a checksum was
 present, and whether it is valid.
+
+`rich_header()` decodes linker/toolchain product-build records. Section entropy is
+reported as an advisory signal, not as proof that a section is malicious.
 
 ## CLI
 

@@ -57,6 +57,7 @@ jobs:
           moon run cmd/main -- certificates examples/minimal-pe32.exe --json
           moon run cmd/main -- overlay examples/minimal-pe32.exe --json
           moon run cmd/main -- checksum examples/minimal-pe32.exe --json
+          moon run cmd/main -- rich examples/rich-pe32.exe --json
           moon run cmd/main -- coff examples/minimal-coff.obj --json
           moon run cmd/main -- security examples/minimal-pe32.exe --sarif > /tmp/pe-security.sarif
           python3 -m json.tool /tmp/pe-security.sarif > /dev/null

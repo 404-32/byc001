@@ -41,6 +41,7 @@ byte access. This project owns the domain logic:
 - Bound-import descriptors, CLR/.NET headers, Authenticode certificate records,
   and overlay detection.
 - Standalone COFF object parsing with symbols and string tables.
+- Rich Header decoding and per-section Shannon entropy analysis.
 - Security diagnostics for ASLR, NX, CFG metadata, SafeSEH, security cookies,
   high-entropy VA, RWX sections, relocations, executable entry points, and
   certificate-table presence.
@@ -56,11 +57,11 @@ byte access. This project owns the domain logic:
 Install from mooncakes.io:
 
 ```bash
-moon add 404-32/moon-pe-inspect@0.5.0
+moon add 404-32/moon-pe-inspect@0.6.0
 ```
 
 Package page:
-https://mooncakes.io/docs/404-32/moon-pe-inspect/0.5.0
+https://mooncakes.io/docs/404-32/moon-pe-inspect/0.6.0
 
 Build and test from source:
 
@@ -102,6 +103,7 @@ moon run cmd/main -- clr examples/minimal-pe32.exe
 moon run cmd/main -- certificates examples/minimal-pe32.exe
 moon run cmd/main -- overlay examples/minimal-pe32.exe
 moon run cmd/main -- checksum examples/minimal-pe32.exe
+moon run cmd/main -- rich examples/rich-pe32.exe
 moon run cmd/main -- diff examples/minimal-pe32.exe examples/minimal-pe32plus.exe
 moon run cmd/main -- coff examples/minimal-coff.obj
 ```
@@ -171,6 +173,12 @@ let overlay = image.overlay()
 let checksum = image.checksum_info()
 
 ///|
+let rich = image.rich_header()
+
+///|
+let entropies = image.section_entropies()
+
+///|
 let diagnostics = image.security_diagnostics()
 
 ///|
@@ -199,6 +207,7 @@ message.
 - `pe.unsigned`: no certificate table is present.
 - `pe.certificate-table`: certificate data exists, but the tool does not verify it.
 - `pe.checksum-mismatch`: the stored PE checksum does not match the file.
+- `pe.high-entropy-section`: a section has entropy of at least 7.5.
 
 The last distinction is intentional: detecting an Authenticode certificate table
 is not the same as validating a signature.

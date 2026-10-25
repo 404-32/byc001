@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-10-25
+
+- Added PE Rich Header decoding.
+- Added per-section Shannon entropy analysis and high-entropy diagnostics.
+- Added Rich Header CLI/JSON output and deterministic fixture.
+
 ## 0.5.0 - 2026-10-25
 
 - Added standalone COFF object parsing.
