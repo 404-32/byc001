@@ -36,6 +36,14 @@ let overlay = image.overlay()
 let checksum = image.checksum_info()
 ```
 
+Standalone COFF objects use a separate parser:
+
+```moonbit
+let object = @pe.CoffObject::parse(coff_bytes)
+let sections = object.sections
+let symbols = object.symbols
+```
+
 Optional directories return an empty array or `None` when absent. Malformed
 present directories return `PeError`.
 

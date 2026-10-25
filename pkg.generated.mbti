@@ -54,6 +54,40 @@ pub(all) struct ClrHeaderInfo {
   strong_name_size : Int
 }
 
+pub(all) struct CoffObject {
+  machine : Int
+  section_count : Int
+  timestamp : Int
+  symbol_table_pointer : Int
+  symbol_count : Int
+  optional_header_size : Int
+  characteristics : Int
+  sections : Array[CoffSection]
+  symbols : Array[CoffSymbol]
+}
+pub fn CoffObject::parse(Bytes) -> Self raise PeError
+
+pub(all) struct CoffSection {
+  name : String
+  virtual_size : Int
+  virtual_address : UInt64
+  raw_size : Int
+  raw_offset : Int
+  relocation_offset : Int
+  line_number_offset : Int
+  relocation_count : Int
+  line_number_count : Int
+  characteristics : UInt64
+}
+
+pub(all) struct CoffSymbol {
+  name : String
+  value : UInt64
+  section_number : Int
+  symbol_type : Int
+  storage_class : Int
+}
+
 pub(all) struct DataDirectory {
   index : Int
   name : String

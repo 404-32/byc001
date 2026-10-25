@@ -10,6 +10,9 @@ delay imports, TLS, Debug/PDB metadata, Load Config, and exception tables. The
 core is a bounds-checked MoonBit library; the CLI adds text, JSON, and artifact
 diff output for CI and analysis workflows.
 
+It also parses standalone COFF object files, including section tables, symbol
+records, long symbol names, string tables, and auxiliary-symbol skipping.
+
 ## Why this project
 
 PE files are produced by Windows build pipelines, shipped as DLLs and EXEs, and
@@ -37,6 +40,7 @@ byte access. This project owns the domain logic:
   metadata, Load Config, and exception entries.
 - Bound-import descriptors, CLR/.NET headers, Authenticode certificate records,
   and overlay detection.
+- Standalone COFF object parsing with symbols and string tables.
 - Security diagnostics for ASLR, NX, CFG metadata, SafeSEH, security cookies,
   high-entropy VA, RWX sections, relocations, executable entry points, and
   certificate-table presence.
@@ -52,11 +56,11 @@ byte access. This project owns the domain logic:
 Install from mooncakes.io:
 
 ```bash
-moon add 404-32/moon-pe-inspect@0.4.0
+moon add 404-32/moon-pe-inspect@0.5.0
 ```
 
 Package page:
-https://mooncakes.io/docs/404-32/moon-pe-inspect/0.4.0
+https://mooncakes.io/docs/404-32/moon-pe-inspect/0.5.0
 
 Build and test from source:
 
@@ -99,6 +103,7 @@ moon run cmd/main -- certificates examples/minimal-pe32.exe
 moon run cmd/main -- overlay examples/minimal-pe32.exe
 moon run cmd/main -- checksum examples/minimal-pe32.exe
 moon run cmd/main -- diff examples/minimal-pe32.exe examples/minimal-pe32plus.exe
+moon run cmd/main -- coff examples/minimal-coff.obj
 ```
 
 Use the security gate or SARIF output in CI:
@@ -170,6 +175,9 @@ let diagnostics = image.security_diagnostics()
 
 ///|
 let offset = image.rva_to_offset(0x1000UL)
+
+///|
+let object = @pe.CoffObject::parse(coff_bytes)
 ```
 
 Parsing is read-only. All binary reads are checked against the available byte

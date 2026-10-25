@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-10-25
+
+- Added standalone COFF object parsing.
+- Added COFF section and symbol-table support, long names, and auxiliary records.
+- Added COFF CLI/JSON output and deterministic COFF fixture.
+
 ## 0.4.0 - 2026-10-24
 
 - Added stored/computed PE checksum verification.
