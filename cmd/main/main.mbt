@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-const VERSION : String = "0.5.0"
+const VERSION : String = "0.6.0"
 
 ///|
 const USAGE : String =
@@ -26,6 +26,7 @@ const USAGE : String =
   #|  moon-pe-inspect certificates <file> [--json]
   #|  moon-pe-inspect overlay <file> [--json]
   #|  moon-pe-inspect checksum <file> [--json]
+  #|  moon-pe-inspect rich <file> [--json]
   #|  moon-pe-inspect coff <file.obj> [--json]
   #|  moon-pe-inspect lint <file> [--json|--sarif]
   #|  moon-pe-inspect diff <left> <right> [--json]
@@ -109,6 +110,7 @@ async fn main {
     "certificates" => certificates(image, json_mode)
     "overlay" => overlay(image, json_mode)
     "checksum" => checksum(image, json_mode)
+    "rich" => rich(image, json_mode)
     "lint" => lint(image, positionals[0], json_mode, sarif_mode)
     _ => {
       println("unknown command: \{command}")
@@ -275,10 +277,18 @@ fn sections(image : @pe.PEImage, json_mode : Bool) -> Unit {
     println(sections_json(image))
     return
   }
-  for section in image.sections {
-    println(
-      "\{section.name}: va=\{hex(section.virtual_address)} vsize=\{section.virtual_size} raw=\{hex(section.raw_offset.to_uint64())}/\{section.raw_size} flags=\{hex(section.characteristics)}",
-    )
+  let entropies = image.section_entropies() catch { @pe.PeError(_, _) => [] }
+  for index in 0..<image.sections.length() {
+    let section = image.sections[index]
+    if entropies.length() == image.sections.length() {
+      println(
+        "\{section.name}: va=\{hex(section.virtual_address)} vsize=\{section.virtual_size} raw=\{hex(section.raw_offset.to_uint64())}/\{section.raw_size} entropy=\{entropies[index].entropy} flags=\{hex(section.characteristics)}",
+      )
+    } else {
+      println(
+        "\{section.name}: va=\{hex(section.virtual_address)} vsize=\{section.virtual_size} raw=\{hex(section.raw_offset.to_uint64())}/\{section.raw_size} flags=\{hex(section.characteristics)}",
+      )
+    }
   }
 }
 
@@ -613,6 +623,26 @@ fn checksum(image : @pe.PEImage, json_mode : Bool) -> Unit {
 }
 
 ///|
+fn rich(image : @pe.PEImage, json_mode : Bool) -> Unit {
+  let rich = image.rich_header()
+  if json_mode {
+    println(rich_json(rich))
+    return
+  }
+  match rich {
+    Some(header) => {
+      println("xor-key: \{hex(header.xor_key)}")
+      for entry in header.entries {
+        println(
+          "product=\{entry.product_id} build=\{entry.build_id} count=\{entry.use_count}",
+        )
+      }
+    }
+    None => println("no Rich header")
+  }
+}
+
+///|
 fn lint(
   image : @pe.PEImage,
   path : String,
@@ -704,10 +734,12 @@ fn inspect_json(image : @pe.PEImage) -> String {
 
 ///|
 fn sections_json(image : @pe.PEImage) -> String {
+  let entropies = image.section_entropies() catch { @pe.PeError(_, _) => [] }
   let builder = StringBuilder()
   builder.write_char('[')
   let mut first = true
-  for section in image.sections {
+  for index in 0..<image.sections.length() {
+    let section = image.sections[index]
     if !first {
       builder.write_char(',')
     }
@@ -722,6 +754,10 @@ fn sections_json(image : @pe.PEImage) -> String {
     write_json_string(builder, hex(section.raw_offset.to_uint64()))
     builder.write_string(",\"rawSize\":")
     builder.write_string(section.raw_size.to_string())
+    if entropies.length() == image.sections.length() {
+      builder.write_string(",\"entropy\":")
+      builder.write_string(entropies[index].entropy.to_string())
+    }
     builder.write_string(",\"characteristics\":")
     write_json_string(builder, hex(section.characteristics))
     builder.write_char('}')
@@ -1151,6 +1187,35 @@ fn checksum_json(checksum : @pe.ChecksumInfo) -> String {
   builder.write_string(if checksum.valid { "true" } else { "false" })
   builder.write_char('}')
   builder.to_string()
+}
+
+///|
+fn rich_json(rich : @pe.RichHeaderInfo?) -> String {
+  match rich {
+    None => "null"
+    Some(header) => {
+      let builder = StringBuilder()
+      builder.write_string("{\"xorKey\":")
+      write_json_string(builder, hex(header.xor_key))
+      builder.write_string(",\"entries\":[")
+      let mut first = true
+      for entry in header.entries {
+        if !first {
+          builder.write_char(',')
+        }
+        first = false
+        builder.write_string("{\"productId\":")
+        builder.write_string(entry.product_id.to_string())
+        builder.write_string(",\"buildId\":")
+        builder.write_string(entry.build_id.to_string())
+        builder.write_string(",\"count\":")
+        builder.write_string(entry.use_count.to_string())
+        builder.write_char('}')
+      }
+      builder.write_string("]}")
+      builder.to_string()
+    }
+  }
 }
 
 ///|
