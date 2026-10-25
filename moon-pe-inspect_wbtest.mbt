@@ -290,6 +290,40 @@ fn build_coff_object_array() -> Array[Byte] {
 }
 
 ///|
+fn build_rich_pe_array() -> Array[Byte] {
+  let buffer = Array::make(0x200, b'\x00')
+  buffer[0] = b'M'
+  buffer[1] = b'Z'
+  put_u32(buffer, 0x3c, 0x100)
+  let key = 0x12345678
+  put_u32(buffer, 0x80, key ^ 0x536e6144)
+  put_u32(buffer, 0x84, key)
+  put_u32(buffer, 0x88, key)
+  put_u32(buffer, 0x8c, key)
+  put_u32(buffer, 0x90, key ^ 0x00011234)
+  put_u32(buffer, 0x94, key ^ 3)
+  put_ascii(buffer, 0x98, "Rich")
+  put_u32(buffer, 0x9c, key)
+
+  buffer[0x100] = b'P'
+  buffer[0x101] = b'E'
+  put_u16(buffer, 0x104, 0x014c)
+  put_u16(buffer, 0x106, 0)
+  put_u16(buffer, 0x114, 96)
+  put_u16(buffer, 0x116, 0x0102)
+  let optional = 0x118
+  put_u16(buffer, optional, 0x010b)
+  put_u32(buffer, optional + 28, 0x400000)
+  put_u32(buffer, optional + 32, 0x1000)
+  put_u32(buffer, optional + 36, 0x200)
+  put_u32(buffer, optional + 56, 0x1000)
+  put_u32(buffer, optional + 60, 0x200)
+  put_u16(buffer, optional + 68, 3)
+  put_u32(buffer, optional + 92, 0)
+  buffer
+}
+
+///|
 test "parse PE32 headers and sections" {
   let image = PEImage::parse(Bytes::from_array(build_pe32_array()))
   assert_true(image.format is PE32)
@@ -298,6 +332,23 @@ test "parse PE32 headers and sections" {
   assert_eq(image.sections[0].name, ".text")
   assert_eq(image.rva_to_offset(0x1000), 0x200)
   assert_eq(image.rva_to_offset(0x1080), 0x280)
+}
+
+///|
+test "parse Rich header and section entropy" {
+  let rich_image = PEImage::parse(Bytes::from_array(build_rich_pe_array()))
+  let rich = rich_image.rich_header().unwrap()
+  assert_eq(rich.entries.length(), 1)
+  assert_eq(rich.entries[0].product_id, 1)
+  assert_eq(rich.entries[0].build_id, 0x1234)
+  assert_eq(rich.entries[0].use_count, 3)
+
+  let entropy_bytes = Array::make(512, b'\x00')
+  for index in 0..<512 {
+    entropy_bytes[index] = (index % 256).to_byte()
+  }
+  let entropy = shannon_entropy(Bytes::from_array(entropy_bytes), 0, 512)
+  assert_true(entropy > 7.99 && entropy <= 8.0)
 }
 
 ///|

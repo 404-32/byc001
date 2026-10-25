@@ -188,11 +188,34 @@ def coff_fixture() -> bytes:
     return bytes(buf)
 
 
+def rich_pe_fixture() -> bytes:
+    buf = bytearray(0x200)
+    buf[0:2] = b"MZ"
+    put(buf, 0x3C, "<I", 0x100)
+    key = 0x12345678
+    put(buf, 0x80, "<I", key ^ 0x536E6144)
+    put(buf, 0x84, "<III", key, key, key)
+    put(buf, 0x90, "<II", key ^ 0x00011234, key ^ 3)
+    put_ascii(buf, 0x98, "Rich")
+    put(buf, 0x9C, "<I", key)
+    buf[0x100:0x102] = b"PE"
+    put(buf, 0x104, "<HHIIIHH", 0x014C, 0, 0, 0, 0, 96, 0x0102)
+    optional = 0x118
+    put(buf, optional, "<H", 0x10B)
+    put(buf, optional + 28, "<I", 0x400000)
+    put(buf, optional + 32, "<II", 0x1000, 0x200)
+    put(buf, optional + 56, "<II", 0x1000, 0x200)
+    put(buf, optional + 68, "<H", 3)
+    put(buf, optional + 92, "<I", 0)
+    return bytes(buf)
+
+
 def main() -> None:
     EXAMPLES.mkdir(exist_ok=True)
     (EXAMPLES / "minimal-pe32.exe").write_bytes(pe32_fixture())
     (EXAMPLES / "minimal-pe32plus.exe").write_bytes(pe32_plus_fixture())
     (EXAMPLES / "minimal-coff.obj").write_bytes(coff_fixture())
+    (EXAMPLES / "rich-pe32.exe").write_bytes(rich_pe_fixture())
 
 
 if __name__ == "__main__":
