@@ -251,6 +251,45 @@ fn build_pe32_plus_array() -> Array[Byte] {
 }
 
 ///|
+fn build_coff_object_array() -> Array[Byte] {
+  let buffer = Array::make(0x100, b'\x00')
+  put_u16(buffer, 0, 0x014c)
+  put_u16(buffer, 2, 1)
+  put_u32(buffer, 4, 987)
+  put_u32(buffer, 8, 0x80)
+  put_u32(buffer, 12, 3)
+  put_u16(buffer, 16, 0)
+  put_u16(buffer, 18, 0x0004)
+
+  put_ascii(buffer, 20, ".text")
+  put_u32(buffer, 28, 4)
+  put_u32(buffer, 32, 0)
+  put_u32(buffer, 36, 4)
+  put_u32(buffer, 40, 0x60)
+  put_u32(buffer, 56, 0x60000020)
+  put_ascii(buffer, 0x60, "CODE")
+
+  // Short symbol, one auxiliary record, then a long-name symbol.
+  put_ascii(buffer, 0x80, "func")
+  put_u32(buffer, 0x88, 0)
+  put_u16(buffer, 0x8c, 1)
+  put_u16(buffer, 0x8e, 0x20)
+  buffer[0x90] = (2).to_byte()
+  buffer[0x91] = (1).to_byte()
+
+  put_u32(buffer, 0xa8, 4)
+  put_u32(buffer, 0xac, 0)
+  put_u16(buffer, 0xb0, 1)
+  put_u16(buffer, 0xb2, 0)
+  buffer[0xb4] = (2).to_byte()
+  buffer[0xb5] = (0).to_byte()
+
+  put_u32(buffer, 0xb6, 16)
+  put_ascii(buffer, 0xba, "long_symbol")
+  buffer
+}
+
+///|
 test "parse PE32 headers and sections" {
   let image = PEImage::parse(Bytes::from_array(build_pe32_array()))
   assert_true(image.format is PE32)
@@ -259,6 +298,32 @@ test "parse PE32 headers and sections" {
   assert_eq(image.sections[0].name, ".text")
   assert_eq(image.rva_to_offset(0x1000), 0x200)
   assert_eq(image.rva_to_offset(0x1080), 0x280)
+}
+
+///|
+test "parse standalone COFF object sections and symbols" {
+  let object = CoffObject::parse(Bytes::from_array(build_coff_object_array()))
+  assert_eq(object.machine, 0x014c)
+  assert_eq(object.section_count, 1)
+  assert_eq(object.sections[0].name, ".text")
+  assert_eq(object.sections[0].raw_size, 4)
+  assert_eq(object.symbols.length(), 2)
+  assert_eq(object.symbols[0].name, "func")
+  assert_eq(object.symbols[1].name, "long_symbol")
+  assert_eq(object.symbols[1].section_number, 1)
+}
+
+///|
+test "COFF parser rejects out-of-range section data" {
+  let bytes = build_coff_object_array()
+  put_u32(bytes, 40, 0x200)
+  let error_offset = try {
+    let _ = CoffObject::parse(Bytes::from_array(bytes))
+    None
+  } catch {
+    PeError(offset, _) => Some(offset)
+  }
+  assert_eq(error_offset, Some(0x200))
 }
 
 ///|
