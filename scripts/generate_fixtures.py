@@ -165,10 +165,34 @@ def pe32_plus_fixture() -> bytes:
     return bytes(buf)
 
 
+def coff_fixture() -> bytes:
+    buf = bytearray(0x100)
+    put(buf, 0, "<HHIIIHH", 0x014C, 1, 987, 0x80, 3, 0, 0x0004)
+
+    put_ascii(buf, 20, ".text")
+    put(buf, 28, "<IIII", 4, 0, 4, 0x60)
+    put(buf, 56, "<I", 0x60000020)
+    put_ascii(buf, 0x60, "CODE")
+
+    put_ascii(buf, 0x80, "func")
+    put(buf, 0x8C, "<HH", 1, 0x20)
+    buf[0x90] = 2
+    buf[0x91] = 1
+
+    put(buf, 0xA8, "<I", 4)
+    put(buf, 0xB0, "<HH", 1, 0)
+    buf[0xB4] = 2
+    buf[0xB5] = 0
+    put(buf, 0xB6, "<I", 16)
+    put_ascii(buf, 0xBA, "long_symbol")
+    return bytes(buf)
+
+
 def main() -> None:
     EXAMPLES.mkdir(exist_ok=True)
     (EXAMPLES / "minimal-pe32.exe").write_bytes(pe32_fixture())
     (EXAMPLES / "minimal-pe32plus.exe").write_bytes(pe32_plus_fixture())
+    (EXAMPLES / "minimal-coff.obj").write_bytes(coff_fixture())
 
 
 if __name__ == "__main__":

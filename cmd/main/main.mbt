@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-const VERSION : String = "0.4.0"
+const VERSION : String = "0.5.0"
 
 ///|
 const USAGE : String =
@@ -26,6 +26,7 @@ const USAGE : String =
   #|  moon-pe-inspect certificates <file> [--json]
   #|  moon-pe-inspect overlay <file> [--json]
   #|  moon-pe-inspect checksum <file> [--json]
+  #|  moon-pe-inspect coff <file.obj> [--json]
   #|  moon-pe-inspect lint <file> [--json|--sarif]
   #|  moon-pe-inspect diff <left> <right> [--json]
 
@@ -79,6 +80,10 @@ async fn main {
     println(USAGE)
     abort("expected exactly one PE file")
   }
+  if command == "coff" {
+    show_coff(load_coff(positionals[0]), json_mode)
+    return
+  }
   let image = load_image(positionals[0])
   match command {
     "inspect" => inspect(image, json_mode)
@@ -115,6 +120,17 @@ async fn main {
 
 ///|
 async fn load_image(path : String) -> @pe.PEImage {
+  let bytes = load_bytes(path)
+  @pe.PEImage::parse(bytes) catch {
+    @pe.PeError(offset, message) => {
+      println("invalid PE file: offset=\{offset}: \{message}")
+      abort("PE parse failed")
+    }
+  }
+}
+
+///|
+async fn load_bytes(path : String) -> Bytes {
   let file = @fs.open(path, mode=ReadOnly) catch {
     error => {
       println("failed to open \{path}: \{error}")
@@ -133,12 +149,86 @@ async fn load_image(path : String) -> @pe.PEImage {
       abort("file read failed")
     }
   }
-  @pe.PEImage::parse(bytes) catch {
+  bytes
+}
+
+///|
+async fn load_coff(path : String) -> @pe.CoffObject {
+  let bytes = load_bytes(path)
+  @pe.CoffObject::parse(bytes) catch {
     @pe.PeError(offset, message) => {
-      println("invalid PE file: offset=\{offset}: \{message}")
-      abort("PE parse failed")
+      println("invalid COFF object: offset=\{offset}: \{message}")
+      abort("COFF parse failed")
     }
   }
+}
+
+///|
+fn show_coff(object : @pe.CoffObject, json_mode : Bool) -> Unit {
+  if json_mode {
+    println(coff_json(object))
+    return
+  }
+  println("machine: \{@pe.architecture_name(object.machine)}")
+  println("sections: \{object.section_count}")
+  println("symbols: \{object.symbols.length()}")
+  for section in object.sections {
+    println(
+      "\{section.name}: raw=\{hex(section.raw_offset.to_uint64())}/\{section.raw_size} flags=\{hex(section.characteristics)}",
+    )
+  }
+  for symbol in object.symbols {
+    println(
+      "symbol \{symbol.name}: section=\{symbol.section_number} value=\{hex(symbol.value)} class=\{symbol.storage_class}",
+    )
+  }
+}
+
+///|
+fn coff_json(object : @pe.CoffObject) -> String {
+  let builder = StringBuilder()
+  builder.write_string("{\"machine\":")
+  write_json_string(builder, @pe.architecture_name(object.machine))
+  builder.write_string(",\"timestamp\":")
+  builder.write_string(object.timestamp.to_string())
+  builder.write_string(",\"characteristics\":")
+  builder.write_string(object.characteristics.to_string())
+  builder.write_string(",\"sections\":[")
+  let mut first_section = true
+  for section in object.sections {
+    if !first_section {
+      builder.write_char(',')
+    }
+    first_section = false
+    builder.write_string("{\"name\":")
+    write_json_string(builder, section.name)
+    builder.write_string(",\"rawOffset\":")
+    write_json_string(builder, hex(section.raw_offset.to_uint64()))
+    builder.write_string(",\"rawSize\":")
+    builder.write_string(section.raw_size.to_string())
+    builder.write_string(",\"characteristics\":")
+    write_json_string(builder, hex(section.characteristics))
+    builder.write_char('}')
+  }
+  builder.write_string("],\"symbols\":[")
+  let mut first_symbol = true
+  for symbol in object.symbols {
+    if !first_symbol {
+      builder.write_char(',')
+    }
+    first_symbol = false
+    builder.write_string("{\"name\":")
+    write_json_string(builder, symbol.name)
+    builder.write_string(",\"section\":")
+    builder.write_string(symbol.section_number.to_string())
+    builder.write_string(",\"value\":")
+    write_json_string(builder, hex(symbol.value))
+    builder.write_string(",\"storageClass\":")
+    builder.write_string(symbol.storage_class.to_string())
+    builder.write_char('}')
+  }
+  builder.write_string("]}")
+  builder.to_string()
 }
 
 ///|
