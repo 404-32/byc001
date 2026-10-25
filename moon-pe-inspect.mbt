@@ -281,6 +281,26 @@ pub(all) struct ChecksumInfo {
 }
 
 ///|
+pub(all) struct RichEntry {
+  product_id : Int32
+  build_id : Int32
+  use_count : Int32
+}
+
+///|
+pub(all) struct RichHeaderInfo {
+  xor_key : UInt64
+  entries : Array[RichEntry]
+}
+
+///|
+pub(all) struct SectionEntropy {
+  section_name : String
+  entropy : Double
+  raw_size : Int32
+}
+
+///|
 pub fn PEImage::va_to_rva(self : Self, va : UInt64) -> UInt64? {
   if va < self.image_base {
     return None

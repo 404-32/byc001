@@ -154,6 +154,16 @@ pub fn PEImage::security_diagnostics(self : Self) -> Array[Diagnostic] {
       message: "stored PE checksum does not match the file contents",
     })
   }
+  let entropies = self.section_entropies() catch { PeError(_, _) => [] }
+  for section in entropies {
+    if section.raw_size >= 512 && section.entropy >= 7.5 {
+      diagnostics.push({
+        severity: Info,
+        code: "pe.high-entropy-section",
+        message: "section '\{section.section_name}' has high entropy (\{section.entropy})",
+      })
+    }
+  }
   diagnostics
 }
 
