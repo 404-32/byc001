@@ -28,10 +28,16 @@ jobs:
         run: moon fmt --check
 
       - name: Static checks
-        run: moon check --target wasm --deny-warn
+        run: moon check --target all --deny-warn
 
-      - name: Tests
+      - name: Tests (Wasm)
         run: moon test --target wasm --deny-warn
+
+      - name: Tests (Wasm-GC)
+        run: moon test --target wasm-gc --deny-warn
+
+      - name: Tests (JavaScript)
+        run: moon test --target js --deny-warn
 
       - name: Package
         run: moon package

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2 - 2026-10-26
+
+- Promoted cross-backend validation to CI for Wasm, Wasm-GC, and JavaScript.
+- Added full small-header COFF object parsing.
+- Added Rich Header and section-entropy analysis.
+- Added full CLI JSON/SARIF contract verification.
+
 ## 0.6.1 - 2026-10-26
 
 - Tightened header-RVA, import, delay-import, and export directory bounds.

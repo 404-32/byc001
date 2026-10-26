@@ -37,3 +37,6 @@ still be produced.
 The project inspects PE32 and PE32+ images on any host through Wasm. It does not
 perform disassembly, execution, signature-chain validation, decompression, or
 resource payload interpretation.
+
+The pure parser and analysis APIs are checked and tested on Wasm, Wasm-GC, and
+JavaScript. Only the filesystem-oriented CLI package is restricted to Wasm.
