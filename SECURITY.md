@@ -3,7 +3,7 @@
 ## Supported versions
 
 Security fixes are applied to the latest published minor release. At the time of
-writing this is the `0.3.x` series.
+writing this is the `0.6.x` series.
 
 ## Input model
 

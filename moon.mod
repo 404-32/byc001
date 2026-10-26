@@ -11,7 +11,7 @@
 
 name = "404-32/moon-pe-inspect"
 
-version = "0.6.2"
+version = "0.6.3"
 
 readme = "README.mbt.md"
 

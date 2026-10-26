@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.3 - 2026-10-26
+
+- Corrected supported-version and contribution validation guidance.
+- Documented strict all-target checking alongside cross-backend tests.
+
 ## 0.6.2 - 2026-10-26
 
 - Promoted cross-backend validation to CI for Wasm, Wasm-GC, and JavaScript.

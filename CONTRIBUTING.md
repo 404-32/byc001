@@ -12,14 +12,17 @@ Run all checks before opening a pull request:
 ```bash
 python scripts/generate_fixtures.py
 moon fmt --check
-moon check --target wasm --deny-warn
+moon check --target all --deny-warn
 moon test --target wasm --deny-warn
+moon test --target wasm-gc --deny-warn
+moon test --target js --deny-warn
 moon package
 python scripts/verify_cli.py
 ```
 
 The CI workflow also checks that fixture regeneration leaves the working tree
-unchanged and exercises every CLI command against the synthetic PE samples.
+unchanged, exercises every CLI command against the synthetic PE samples, and
+packages the module.
 
 ## Code standards
 

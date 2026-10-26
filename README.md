@@ -57,11 +57,11 @@ byte access. This project owns the domain logic:
 Install from mooncakes.io:
 
 ```bash
-moon add 404-32/moon-pe-inspect@0.6.2
+moon add 404-32/moon-pe-inspect@0.6.3
 ```
 
 Package page:
-https://mooncakes.io/docs/404-32/moon-pe-inspect/0.6.2
+https://mooncakes.io/docs/404-32/moon-pe-inspect/0.6.3
 
 Build and test from source:
 
@@ -247,7 +247,7 @@ runtime dependency notice.
 
 ```bash
 python scripts/generate_fixtures.py
-moon check --target wasm --deny-warn
+moon check --target all --deny-warn
 moon test --target wasm --deny-warn
 moon test --target wasm-gc --deny-warn
 moon test --target js --deny-warn
