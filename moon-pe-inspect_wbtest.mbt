@@ -650,6 +650,31 @@ test "malformed optional directories return bounded errors" {
 }
 
 ///|
+test "header RVA and short import directory stay bounded" {
+  let header_bytes = build_pe32_array()
+  put_u32(header_bytes, 0x98 + 60, 0x2000)
+  let header_error = try {
+    let image = PEImage::parse(Bytes::from_array(header_bytes))
+    let _ = image.rva_to_offset(0x1fff)
+    None
+  } catch {
+    PeError(offset, _) => Some(offset)
+  }
+  assert_eq(header_error, Some(0x1fff))
+
+  let import_bytes = build_pe32_array()
+  put_u32(import_bytes, 0x98 + 96 + 12, 4)
+  let import_error = try {
+    let image = PEImage::parse(Bytes::from_array(import_bytes))
+    let _ = image.imports()
+    None
+  } catch {
+    PeError(offset, _) => Some(offset)
+  }
+  assert_eq(import_error, Some(0x280))
+}
+
+///|
 test "truncated and invalid files return offset errors" {
   let truncated = try {
     let _ = PEImage::parse(b"MZ")
