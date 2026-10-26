@@ -179,7 +179,9 @@ pub fn PEImage::parse(data : Bytes) -> Self raise PeError {
 ///|
 pub fn PEImage::rva_to_offset(self : Self, rva : UInt64) -> Int32 raise PeError {
   if rva < self.size_of_headers.to_uint64() {
-    return checked_int(rva, 0, "RVA")
+    let offset = checked_int(rva, 0, "RVA")
+    ensure_range(self.data, offset, 1)
+    return offset
   }
   for section in self.sections {
     let span = if section.virtual_size > section.raw_size {

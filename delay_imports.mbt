@@ -10,7 +10,10 @@ pub fn PEImage::delay_imports(
     _ => return []
   }
   let start = self.rva_to_offset(directory.virtual_address)
-  let limit = if directory.size >= 32 { directory.size / 32 } else { 4096 }
+  if directory.size < 32 {
+    raise PeError(start, "delay-import directory is truncated")
+  }
+  let limit = directory.size / 32
   let descriptor_limit = if limit < 4096 { limit } else { 4096 }
   let libraries = []
   for index in 0..<descriptor_limit {

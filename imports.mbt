@@ -8,11 +8,10 @@ pub fn PEImage::imports(self : Self) -> Array[ImportLibrary] raise PeError {
     _ => return []
   }
   let descriptor_offset = self.rva_to_offset(directory.virtual_address)
-  let directory_limit = if directory.size >= 20 {
-    directory.size / 20
-  } else {
-    4096
+  if directory.size < 20 {
+    raise PeError(descriptor_offset, "import directory is truncated")
   }
+  let directory_limit = directory.size / 20
   let descriptor_limit = if directory_limit < 4096 {
     directory_limit
   } else {

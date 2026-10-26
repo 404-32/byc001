@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
-const VERSION : String = "0.6.0"
+const VERSION : String = "0.6.1"
 
 ///|
 const USAGE : String =
@@ -616,8 +616,8 @@ fn checksum(image : @pe.PEImage, json_mode : Bool) -> Unit {
     println(checksum_json(checksum))
     return
   }
-  println("stored: \{hex(checksum.stored.to_uint64())}")
-  println("computed: \{hex(checksum.computed.to_uint64())}")
+  println("stored: \{hex32(checksum.stored)}")
+  println("computed: \{hex32(checksum.computed)}")
   println("present: \{checksum.present}")
   println("valid: \{checksum.valid}")
 }
@@ -1178,9 +1178,9 @@ fn overlay_json(info : @pe.OverlayInfo?) -> String {
 fn checksum_json(checksum : @pe.ChecksumInfo) -> String {
   let builder = StringBuilder()
   builder.write_string("{\"stored\":")
-  write_json_string(builder, hex(checksum.stored.to_uint64()))
+  write_json_string(builder, hex32(checksum.stored))
   builder.write_string(",\"computed\":")
-  write_json_string(builder, hex(checksum.computed.to_uint64()))
+  write_json_string(builder, hex32(checksum.computed))
   builder.write_string(",\"present\":")
   builder.write_string(if checksum.present { "true" } else { "false" })
   builder.write_string(",\"valid\":")
@@ -1400,6 +1400,11 @@ fn hex(value : UInt64) -> String {
     index = index - 1
   }
   result.to_string()
+}
+
+///|
+fn hex32(value : Int32) -> String {
+  hex(value.to_uint64().land(0xffffffffUL))
 }
 
 ///|

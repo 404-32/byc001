@@ -8,6 +8,9 @@ pub fn PEImage::exports(self : Self) -> Array[ExportSymbol] raise PeError {
     _ => return []
   }
   let offset = self.rva_to_offset(directory.virtual_address)
+  if directory.size < 40 {
+    raise PeError(offset, "export directory is truncated")
+  }
   ensure_range(self.data, offset, 40)
   let name_rva = read_u32(self.data, offset + 12)
   let ordinal_base = read_u32(self.data, offset + 16)
