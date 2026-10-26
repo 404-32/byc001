@@ -15,6 +15,7 @@ moon fmt --check
 moon check --target wasm --deny-warn
 moon test --target wasm --deny-warn
 moon package
+python scripts/verify_cli.py
 ```
 
 The CI workflow also checks that fixture regeneration leaves the working tree

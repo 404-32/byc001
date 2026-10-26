@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 - 2026-10-26
+
+- Tightened header-RVA, import, delay-import, and export directory bounds.
+- Added full CLI JSON/SARIF contract verification.
+- Corrected unsigned 32-bit checksum display.
+
 ## 0.6.0 - 2026-10-25
 
 - Added PE Rich Header decoding.

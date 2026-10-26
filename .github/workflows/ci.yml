@@ -73,3 +73,6 @@ jobs:
           test "$status" -ne 0
           python3 -m json.tool /tmp/pe-lint.json > /dev/null
           grep -q '"passed":false' /tmp/pe-lint.json
+
+      - name: Full CLI contract verification
+        run: python3 scripts/verify_cli.py

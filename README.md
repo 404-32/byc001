@@ -57,11 +57,11 @@ byte access. This project owns the domain logic:
 Install from mooncakes.io:
 
 ```bash
-moon add 404-32/moon-pe-inspect@0.6.0
+moon add 404-32/moon-pe-inspect@0.6.1
 ```
 
 Package page:
-https://mooncakes.io/docs/404-32/moon-pe-inspect/0.6.0
+https://mooncakes.io/docs/404-32/moon-pe-inspect/0.6.1
 
 Build and test from source:
 
