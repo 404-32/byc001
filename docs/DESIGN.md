@@ -24,6 +24,9 @@
 - CLR and Load Config fields are read only when the declared structure is large
   enough.
 - Parsing is read-only and never loads or executes an inspected image.
+- Every security diagnostic has an isolated positive and negative matrix case.
+- Parser truncation and deterministic mutation tests fail on panics as well as
+  incorrect success or error results.
 
 ## Error model
 
@@ -39,4 +42,6 @@ perform disassembly, execution, signature-chain validation, decompression, or
 resource payload interpretation.
 
 The pure parser and analysis APIs are checked and tested on Wasm, Wasm-GC, and
-JavaScript. Only the filesystem-oriented CLI package is restricted to Wasm.
+JavaScript, with native tests for the core package. CI also gates overall and
+critical-file line coverage. Only the filesystem-oriented CLI package is
+restricted to Wasm.

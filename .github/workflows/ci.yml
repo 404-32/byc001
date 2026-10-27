@@ -27,6 +27,9 @@ jobs:
       - name: Check formatting
         run: moon fmt --check
 
+      - name: Verify README mirrors
+        run: cmp README.md README.mbt.md
+
       - name: Static checks
         run: moon check --target all --deny-warn
 
@@ -38,6 +41,14 @@ jobs:
 
       - name: Tests (JavaScript)
         run: moon test --target js --deny-warn
+
+      - name: Tests (Native core)
+        run: moon test --package 404-32/moon-pe-inspect --target native --deny-warn
+
+      - name: Coverage gate
+        run: |
+          moon coverage analyze -p 404-32/moon-pe-inspect -- -f summary > /tmp/coverage.txt
+          python3 scripts/check_coverage.py /tmp/coverage.txt
 
       - name: Package
         run: moon package

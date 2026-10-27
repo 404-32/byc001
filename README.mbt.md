@@ -51,6 +51,7 @@ byte access. This project owns the domain logic:
 - CI security gate and SARIF 2.1.0 output.
 - CLI commands with human-readable and JSON output.
 - Reproducible synthetic PE fixtures for tests and demonstrations.
+- Independent security-rule matrix tests and deterministic malformed-input tests.
 
 ## Quick start
 
@@ -251,6 +252,9 @@ moon check --target all --deny-warn
 moon test --target wasm --deny-warn
 moon test --target wasm-gc --deny-warn
 moon test --target js --deny-warn
+moon test --package 404-32/moon-pe-inspect --target native --deny-warn
+moon coverage analyze -p 404-32/moon-pe-inspect -- -f summary > /tmp/coverage.txt
+python scripts/check_coverage.py /tmp/coverage.txt
 moon fmt --check
 moon package
 moon run cmd/main -- inspect examples/minimal-pe32.exe

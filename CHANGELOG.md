@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added independent security-rule matrix tests for all diagnostic branches.
+- Added deterministic structural-field, truncation, and random-mutation tests.
+- Added native core tests, README mirror verification, and a coverage gate.
+
 ## 0.6.3 - 2026-10-26
 
 - Corrected supported-version and contribution validation guidance.
