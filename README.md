@@ -55,6 +55,11 @@ byte access. This project owns the domain logic:
 
 ## Quick start
 
+Requirements:
+
+- MoonBit compiler `moonc >= 0.10.16`; CI verifies this minimum.
+- Python 3 is required only for fixture regeneration and verification scripts.
+
 Install from mooncakes.io:
 
 ```bash

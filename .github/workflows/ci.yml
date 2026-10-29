@@ -21,6 +21,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify MoonBit toolchain
+        run: python3 scripts/check_toolchain.py
+
       - name: Update registry index
         run: moon update
 

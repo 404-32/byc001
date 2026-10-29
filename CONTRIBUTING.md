@@ -2,7 +2,7 @@
 
 ## Development requirements
 
-- MoonBit toolchain compatible with the version used by CI.
+- MoonBit compiler `moonc >= 0.10.16`; CI enforces the minimum.
 - Python 3 for regenerating deterministic test fixtures.
 
 ## Validation

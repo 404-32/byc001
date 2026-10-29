@@ -5,6 +5,7 @@
 - Added independent security-rule matrix tests for all diagnostic branches.
 - Added deterministic structural-field, truncation, and random-mutation tests.
 - Added native core tests, README mirror verification, and a coverage gate.
+- Declared and enforced the MoonBit compiler minimum of `0.10.16`.
 
 ## 0.6.3 - 2026-10-26
 

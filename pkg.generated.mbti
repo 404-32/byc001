@@ -2,66 +2,66 @@
 package "404-32/moon-pe-inspect"
 
 // Values
-pub fn architecture_name(Int) -> String
+pub fn architecture_name(Int32) -> String
 
-pub fn certificate_type_name(Int) -> String
+pub fn certificate_type_name(Int32) -> String
 
-pub fn relocation_type_name(Int) -> String
+pub fn relocation_type_name(Int32) -> String
 
-pub fn subsystem_name(Int) -> String
+pub fn subsystem_name(Int32) -> String
 
 // Errors
 pub(all) suberror PeError {
-  PeError(Int, String)
+  PeError(Int32, String)
 }
 
 // Types and methods
 pub(all) struct BoundForwarder {
   name : String
-  timestamp : Int
+  timestamp : Int32
 }
 
 pub(all) struct BoundImport {
   name : String
-  timestamp : Int
+  timestamp : Int32
   forwarders : Array[BoundForwarder]
 }
 
 pub(all) struct CertificateRecord {
-  length : Int
-  revision : Int
-  certificate_type : Int
+  length : Int32
+  revision : Int32
+  certificate_type : Int32
 }
 
 pub(all) struct ChecksumInfo {
-  stored : Int
-  computed : Int
+  stored : Int32
+  computed : Int32
   present : Bool
   valid : Bool
 }
 
 pub(all) struct ClrHeaderInfo {
-  header_size : Int
-  major_runtime_version : Int
-  minor_runtime_version : Int
+  header_size : Int32
+  major_runtime_version : Int32
+  minor_runtime_version : Int32
   metadata_rva : UInt64
-  metadata_size : Int
-  flags : Int
-  entry_point_token : Int
+  metadata_size : Int32
+  flags : Int32
+  entry_point_token : Int32
   resources_rva : UInt64
-  resources_size : Int
+  resources_size : Int32
   strong_name_rva : UInt64
-  strong_name_size : Int
+  strong_name_size : Int32
 }
 
 pub(all) struct CoffObject {
-  machine : Int
-  section_count : Int
-  timestamp : Int
-  symbol_table_pointer : Int
-  symbol_count : Int
-  optional_header_size : Int
-  characteristics : Int
+  machine : Int32
+  section_count : Int32
+  timestamp : Int32
+  symbol_table_pointer : Int32
+  symbol_count : Int32
+  optional_header_size : Int32
+  characteristics : Int32
   sections : Array[CoffSection]
   symbols : Array[CoffSymbol]
 }
@@ -69,48 +69,48 @@ pub fn CoffObject::parse(Bytes) -> Self raise PeError
 
 pub(all) struct CoffSection {
   name : String
-  virtual_size : Int
+  virtual_size : Int32
   virtual_address : UInt64
-  raw_size : Int
-  raw_offset : Int
-  relocation_offset : Int
-  line_number_offset : Int
-  relocation_count : Int
-  line_number_count : Int
+  raw_size : Int32
+  raw_offset : Int32
+  relocation_offset : Int32
+  line_number_offset : Int32
+  relocation_count : Int32
+  line_number_count : Int32
   characteristics : UInt64
 }
 
 pub(all) struct CoffSymbol {
   name : String
   value : UInt64
-  section_number : Int
-  symbol_type : Int
-  storage_class : Int
+  section_number : Int32
+  symbol_type : Int32
+  storage_class : Int32
 }
 
 pub(all) struct DataDirectory {
-  index : Int
+  index : Int32
   name : String
   virtual_address : UInt64
-  size : Int
+  size : Int32
 }
 
 pub(all) struct DebugEntry {
-  debug_type : Int
+  debug_type : Int32
   type_name : String
-  timestamp : Int
-  size_of_data : Int
+  timestamp : Int32
+  size_of_data : Int32
   address_of_raw_data : UInt64
-  pointer_to_raw_data : Int
+  pointer_to_raw_data : Int32
   pdb_path : String?
-  pdb_age : Int?
+  pdb_age : Int32?
   pdb_guid : String?
 }
 
 pub(all) struct DelayImportLibrary {
   name : String
-  attributes : Int
-  timestamp : Int
+  attributes : Int32
+  timestamp : Int32
   symbols : Array[ImportSymbol]
 }
 
@@ -134,7 +134,7 @@ pub(all) struct ExceptionEntry {
 
 pub(all) struct ExportSymbol {
   name : String
-  ordinal : Int
+  ordinal : Int32
   rva : UInt64
   forwarder : String?
 }
@@ -146,28 +146,28 @@ pub(all) struct ImportLibrary {
 
 pub(all) struct ImportSymbol {
   name : String?
-  ordinal : Int?
-  hint : Int?
+  ordinal : Int32?
+  hint : Int32?
 }
 
 pub(all) struct LoadConfigInfo {
-  structure_size : Int
-  timestamp : Int
-  global_flags_clear : Int?
-  global_flags_set : Int?
+  structure_size : Int32
+  timestamp : Int32
+  global_flags_clear : Int32?
+  global_flags_set : Int32?
   security_cookie : UInt64?
   se_handler_table : UInt64?
-  se_handler_count : Int?
+  se_handler_count : Int32?
   guard_cf_check_pointer : UInt64?
   guard_cf_dispatch_pointer : UInt64?
   guard_cf_function_table : UInt64?
-  guard_cf_function_count : Int?
-  guard_flags : Int?
+  guard_cf_function_count : Int32?
+  guard_flags : Int32?
 }
 
 pub(all) struct OverlayInfo {
-  offset : Int
-  size : Int
+  offset : Int32
+  size : Int32
 }
 
 pub(all) enum PEFormat {
@@ -177,24 +177,24 @@ pub(all) enum PEFormat {
 
 pub(all) struct PEImage {
   data : Bytes
-  pe_offset : Int
+  pe_offset : Int32
   format : PEFormat
-  machine : Int
-  number_of_sections : Int
+  machine : Int32
+  number_of_sections : Int32
   timestamp : UInt64
   symbol_table_pointer : UInt64
   number_of_symbols : UInt64
-  size_of_optional_header : Int
-  characteristics : Int
+  size_of_optional_header : Int32
+  characteristics : Int32
   entry_point : UInt64
   image_base : UInt64
-  section_alignment : Int
-  file_alignment : Int
-  size_of_image : Int
-  size_of_headers : Int
+  section_alignment : Int32
+  file_alignment : Int32
+  size_of_image : Int32
+  size_of_headers : Int32
   checksum : UInt64
-  subsystem : Int
-  dll_characteristics : Int
+  subsystem : Int32
+  dll_characteristics : Int32
   sections : Array[Section]
   directories : Array[DataDirectory]
 }
@@ -206,7 +206,7 @@ pub fn PEImage::clr_header(Self) -> ClrHeaderInfo? raise PeError
 pub fn PEImage::debug_entries(Self) -> Array[DebugEntry] raise PeError
 pub fn PEImage::delay_imports(Self) -> Array[DelayImportLibrary] raise PeError
 pub fn PEImage::diff(Self, Self) -> Array[DiffItem]
-pub fn PEImage::directory(Self, Int) -> DataDirectory?
+pub fn PEImage::directory(Self, Int32) -> DataDirectory?
 pub fn PEImage::exception_entries(Self) -> Array[ExceptionEntry] raise PeError
 pub fn PEImage::exports(Self) -> Array[ExportSymbol] raise PeError
 pub fn PEImage::imports(Self) -> Array[ImportLibrary] raise PeError
@@ -214,10 +214,10 @@ pub fn PEImage::is_64_bit(Self) -> Bool
 pub fn PEImage::load_config(Self) -> LoadConfigInfo? raise PeError
 pub fn PEImage::overlay(Self) -> OverlayInfo?
 pub fn PEImage::parse(Bytes) -> Self raise PeError
-pub fn PEImage::read_c_string(Self, UInt64, Int) -> String raise PeError
+pub fn PEImage::read_c_string(Self, UInt64, Int32) -> String raise PeError
 pub fn PEImage::resources(Self) -> Array[ResourceEntry] raise PeError
 pub fn PEImage::rich_header(Self) -> RichHeaderInfo?
-pub fn PEImage::rva_to_offset(Self, UInt64) -> Int raise PeError
+pub fn PEImage::rva_to_offset(Self, UInt64) -> Int32 raise PeError
 pub fn PEImage::section_by_name(Self, String) -> Section?
 pub fn PEImage::section_entropies(Self) -> Array[SectionEntropy] raise PeError
 pub fn PEImage::security_diagnostics(Self) -> Array[Diagnostic]
@@ -230,26 +230,26 @@ pub(all) struct RelocationBlock {
 }
 
 pub(all) struct RelocationEntry {
-  relocation_type : Int
-  offset : Int
+  relocation_type : Int32
+  offset : Int32
   target_rva : UInt64
 }
 
 pub(all) struct ResourceEntry {
   path : String
-  type_id : Int?
-  name_id : Int?
-  language_id : Int?
+  type_id : Int32?
+  name_id : Int32?
+  language_id : Int32?
   data_rva : UInt64
-  file_offset : Int?
-  size : Int
-  code_page : Int
+  file_offset : Int32?
+  size : Int32
+  code_page : Int32
 }
 
 pub(all) struct RichEntry {
-  product_id : Int
-  build_id : Int
-  use_count : Int
+  product_id : Int32
+  build_id : Int32
+  use_count : Int32
 }
 
 pub(all) struct RichHeaderInfo {
@@ -259,17 +259,17 @@ pub(all) struct RichHeaderInfo {
 
 pub(all) struct Section {
   name : String
-  virtual_size : Int
+  virtual_size : Int32
   virtual_address : UInt64
-  raw_size : Int
-  raw_offset : Int
+  raw_size : Int32
+  raw_offset : Int32
   characteristics : UInt64
 }
 
 pub(all) struct SectionEntropy {
   section_name : String
   entropy : Double
-  raw_size : Int
+  raw_size : Int32
 }
 
 pub(all) enum Severity {
@@ -283,8 +283,8 @@ pub(all) struct TlsInfo {
   raw_data_end : UInt64
   index_address : UInt64
   callbacks_address : UInt64
-  size_of_zero_fill : Int
-  characteristics : Int
+  size_of_zero_fill : Int32
+  characteristics : Int32
   callbacks : Array[UInt64]
 }
 
